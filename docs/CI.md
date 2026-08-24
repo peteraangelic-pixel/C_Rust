@@ -8,12 +8,16 @@ z gitem (push był odrzucany) i został celowo poza commitem.
 
 ## Opcja A (najszybsza, ~2 min): dodaj workflow ręcznie na GitHubie
 
-1. Otwórz branch `arena/01a03364-c-rust` → **Add file → Create new file**
-2. Nazwa: `.github/workflows/ci.yml`
-3. Wklej treść z lokalnego pliku `.github/workflows/ci.yml`
-   (identyczny plik jest w workspace — to ta sama zawartość)
-4. Commit → **push do brancha odpala workflow** (`on: push` dla wszystkich
-   branchy), więc CI wystartuje natychmiast po dodaniu pliku.
+Kopia workflow żyje w repo jako **`docs/ci-workflow.yml`** (śledzona w gicie,
+bo plik pod `.github/workflows/` nie może być wypychany przez aplikację Areny).
+
+1. Otwórz na GitHubie plik `docs/ci-workflow.yml` na branchu
+   `arena/01a03364-c-rust` → przycisk **Raw** → skopiuj całą treść
+   (nagłówek-komentarz możesz zostawić, YAML go ignoruje)
+2. Na branchu: **Add file → Create new file** → nazwa dokładnie
+   `.github/workflows/ci.yml` → wklej → commit
+3. Commit **odpala workflow** (`on: push` dla wszystkich branchy) — CI
+   wystartuje natychmiast.
 
 ## Opcja B: uprawnienia `workflows` dla aplikacji Areny
 
