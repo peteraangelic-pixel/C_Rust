@@ -27,7 +27,7 @@ jobs:
       - name: Format check (non-blocking do 1. lokalnego rustfmt — ADR-0004)
         continue-on-error: true
         run: cargo fmt --all --check
-      - name: Testy workspace (std-only — ADR-0004)
+      - name: Testy workspace (spike-core std-only; pyo3 z crates.io)
         run: cargo test --workspace
       - name: Build rdzenia spike'a (cdylib dla ctypes)
         run: cargo build --release -p hotport-spike-core
@@ -39,7 +39,7 @@ jobs:
           name: spike-so
           path: |
             target/release/libhotport_spike_core.so
-            examples/spike/pyo3/target/release/libhotport_spike.so
+            target/release/libhotport_spike.so
 
   python:
     name: Python (differential + bench + gate)

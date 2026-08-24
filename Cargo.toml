@@ -7,9 +7,11 @@ members = [
     "crates/hotport-bench",
     "crates/hotport-cli",
     "examples/spike/core",
+    # pyo3 w workspace od 2026-08-24: wspolny target/release => artefakt CI płaski
+    # (bug: upload-artifact z 2 ścieżkami o różnych prefiksach pakowal ze wspólnym
+    #  przodkiem repo-root i cp w jobie python nie widział pliku)
+    "examples/spike/pyo3",
 ]
-# Osobny workspace: wymaga pyo3 z crates.io (dostępne w CI, nie w sandboxie dev).
-exclude = ["examples/spike/pyo3"]
 
 [workspace.package]
 version = "0.0.1"

@@ -202,7 +202,10 @@ mod tests {
         for ok in ["123-asd-7sda", "123-k-123", "dac-12sa-459", "dac-12sa7-ad31as", "a"] {
             assert!(slug_core(ok), "powinno byc valid: {ok}");
         }
-        for bad in ["some.slug&", "1231321%", "   21312", "-47q-p--123", "", "A-b", "a--b", "abc-", "ń-abc"] {
+        for bad in [
+            "some.slug&", "1231321%", "   21312", "-47q-p--123", "", "A-b", "a--b", "abc-",
+            "ń-abc",
+        ] {
             assert!(!slug_core(bad), "powinno byc invalid: {bad}");
         }
         // pulapka koncowego '\n' (semantyka '$' w re)
@@ -214,13 +217,31 @@ mod tests {
 
     #[test]
     fn uuid_zlote_reguly() {
-        assert_eq!(uuid_core("2bc1c94f-0deb-43e9-92a1-4775189ec9f8"), Some(true));
-        assert_eq!(uuid_core("2BC1C94F-0DEB-43E9-92A1-4775189EC9F8"), Some(true));
+        assert_eq!(
+            uuid_core("2bc1c94f-0deb-43e9-92a1-4775189ec9f8"),
+            Some(true)
+        );
+        assert_eq!(
+            uuid_core("2BC1C94F-0DEB-43E9-92A1-4775189EC9F8"),
+            Some(true)
+        );
         assert_eq!(uuid_core("2bc1c94f0deb43e992a14775189ec9f8"), Some(true));
-        assert_eq!(uuid_core("{2bc1c94f-0deb-43e9-92a1-4775189ec9f8}"), Some(true));
-        assert_eq!(uuid_core("urn:uuid:2bc1c94f-0deb-43e9-92a1-4775189ec9f8"), Some(true));
-        assert_eq!(uuid_core("uuid:2bc1c94f-0deb-43e9-92a1-4775189ec9f8"), Some(true));
-        assert_eq!(uuid_core("{urn:uuid:2bc1c94f-0deb-43e9-92a1-4775189ec9f8}"), Some(true));
+        assert_eq!(
+            uuid_core("{2bc1c94f-0deb-43e9-92a1-4775189ec9f8}"),
+            Some(true)
+        );
+        assert_eq!(
+            uuid_core("urn:uuid:2bc1c94f-0deb-43e9-92a1-4775189ec9f8"),
+            Some(true)
+        );
+        assert_eq!(
+            uuid_core("uuid:2bc1c94f-0deb-43e9-92a1-4775189ec9f8"),
+            Some(true)
+        );
+        assert_eq!(
+            uuid_core("{urn:uuid:2bc1c94f-0deb-43e9-92a1-4775189ec9f8}"),
+            Some(true)
+        );
         // pulapki int(): '+' i '_' (PEP 515) sa VALID, '-' nie
         assert_eq!(uuid_core("+2bc1c94f0deb43e992a14775189ec9f"), Some(true));
         assert_eq!(uuid_core("2bc1c94f_0deb43e992a14775189ec9f"), Some(true));
@@ -228,17 +249,23 @@ mod tests {
         // białe znaki obcinane przez int(): 30 hex + 2 ws = VALID (empiryczne!)
         assert_eq!(uuid_core("2bc1c94f0deb43e992a14775189ec9  "), Some(true));
         assert_eq!(uuid_core("\t2bc1c94f0deb43e992a14775189ec9 "), Some(true));
-        assert_eq!(uuid_core("\x0b2bc1c94f0deb43e992a14775189ec9f"), Some(true)); // \x0b tez obcinane
-        assert_eq!(uuid_core("+\x0b2bc1c94f0deb43e992a14775189ec"), Some(false)); // ws tylko na końcach
+        assert_eq!(uuid_core("\x0b2bc1c94f0deb43e992a14775189ec9f"), Some(true)); // \x0b też
+        assert_eq!(uuid_core("+\x0b2bc1c94f0deb43e992a14775189ec"), Some(false)); // tylko końce
         assert_eq!(uuid_core(" +2bc1c94f0deb43e992a14775189ec9"), Some(true));
         assert_eq!(uuid_core("+ 2bc1c94f0deb43e992a14775189ec9"), Some(false)); // ws w środku
         assert_eq!(uuid_core("2bc1 94f0deb43e992a14775189ec9f"), Some(false)); // ws w środku
         assert_eq!(uuid_core("-2bc1c94f0deb43e992a14775189ec9f"), Some(false));
         // wielkie URN: replace jest case-sensitive
-        assert_eq!(uuid_core("URN:UUID:2bc1c94f-0deb-43e9-92a1-4775189ec9f8"), Some(false));
+        assert_eq!(
+            uuid_core("URN:UUID:2bc1c94f-0deb-43e9-92a1-4775189ec9f8"),
+            Some(false)
+        );
         assert_eq!(uuid_core(" 2bc1c94f0deb43e992a14775189ec9f8"), Some(false));
         assert_eq!(uuid_core("2bc1c94f0deb43e992a14775189ec9f8x"), Some(false));
-        assert_eq!(uuid_core("2bc1c94f-0deb-43e9-92a1-4775189ec9f"), Some(false));
+        assert_eq!(
+            uuid_core("2bc1c94f-0deb-43e9-92a1-4775189ec9f"),
+            Some(false)
+        );
         assert_eq!(uuid_core(""), Some(false));
         // unicode (Nd) — poza kontraktem ASCII → routing do Pythona
         assert_eq!(uuid_core("٢bc1c94f0deb43e992a14775189ec9f8"), None);
@@ -256,9 +283,9 @@ mod tests {
         assert_eq!(d("1.1.1.1/0.0.0.0"), Some(true));
         assert_eq!(d("1.1.1.1/024"), Some(true)); // wiodące zero w PREFIKSIE jest ok
         assert_eq!(d("1.1.1.1/00"), Some(true)); // "00" → int=0 — też OK! (pierwszy przebieg CI
-        // złapał tu błędne oczekiwanie Some(false): w probe'u strict=True zawiniły bity
-        // hosta, nie maska — lekcja: oczekiwanie testu wyprowadzaj z probe'u o DOKŁADNIE
-        // tych parametrach, których używa testowany kod)
+                                                 // złapał tu błędne oczekiwanie Some(false): w probe'u strict=True zawiniły bity
+                                                 // hosta, nie maska — lekcja: oczekiwanie testu wyprowadzaj z probe'u o DOKŁADNIE
+                                                 // tych parametrach, których używa testowany kod)
         assert_eq!(d("0127.0.0.1"), Some(false)); // ...a w oktecie adresu nie
         assert_eq!(d("1.1.1.01"), Some(false));
         assert_eq!(d("900.200.100.75"), Some(false));
@@ -281,7 +308,7 @@ mod tests {
         assert_eq!(ipv4_core("1.2.3.4/24", true, false, false), Some(false));
         assert_eq!(ipv4_core("12.12.12.0/24", true, false, false), Some(true));
         assert_eq!(ipv4_core("1.1.1.1", true, false, false), Some(true)); // /32
-        // cidr=False → czysty adres
+                                                                          // cidr=False → czysty adres
         assert_eq!(ipv4_core("1.2.3.4/24", false, false, true), Some(false));
         assert_eq!(ipv4_core("1.1.1.1", false, false, true), Some(true));
         assert_eq!(ipv4_core("", true, false, true), Some(false));

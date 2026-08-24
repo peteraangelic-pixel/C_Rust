@@ -146,12 +146,24 @@ mod tests {
             BenchRow {
                 function: "slug".into(),
                 implementation: "python".into(),
-                stats: Stats { n: 3, median_ns_per_op: 100.0, p05_ns_per_op: 90.0, p95_ns_per_op: 110.0, mean_ns_per_op: 100.0 },
+                stats: Stats {
+                    n: 3,
+                    median_ns_per_op: 100.0,
+                    p05_ns_per_op: 90.0,
+                    p95_ns_per_op: 110.0,
+                    mean_ns_per_op: 100.0,
+                },
             },
             BenchRow {
                 function: "slug".into(),
                 implementation: "rust".into(),
-                stats: Stats { n: 3, median_ns_per_op: 25.0, p05_ns_per_op: 20.0, p95_ns_per_op: 30.0, mean_ns_per_op: 25.0 },
+                stats: Stats {
+                    n: 3,
+                    median_ns_per_op: 25.0,
+                    p05_ns_per_op: 20.0,
+                    p95_ns_per_op: 30.0,
+                    mean_ns_per_op: 25.0,
+                },
             },
         ];
         let r = render_report(&rows);
