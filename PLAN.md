@@ -192,8 +192,12 @@ Założenie: 1 osoba, ~10–15 h/tydzień. Przy większym budżecie czasu fazy s
       zrealizowany już w fazie 0 (shim `hotport_spike`).
 - [x] Silnik L1 (replay) + porównywarka wyników + exit-code gate — done w fazie 0;
       w fazie 1 rozszerzony o warstwę **l1-trace** (manifest→runner): 1784 PASS.
-- **DoD:** `pyaccel verify examples/targets/validators` z REALNYM .so z CI (pending
-  push) — na razie spełnione na backendzie ref z prawdziwymi wewołaniami z suite.
+- **DoD:** `pyaccel verify examples/targets/validators` z REALNYM .so z CI —
+  **SPEŁNIONE 2026-08-24 (commit 82400c3): pierwszy w pełni zielony przebieg CI**:
+  fmt → testy workspace → build (core+PyO3) → płaski artefakt .so → suite vendora
+  → differential na prawdziwym Rust → bramka (exit-code) → benchmark → raporty.
+  Droga wymagała naprawy 7 bugów (REPORT.md) — każdy złapany przez inną warstwę
+  pipeline'u, co samo w sobie waliduje architekturę „wielu siatek".
 
 ### Faza 2 — Translator v1 (tydz. 5–7) ⏱ 3 tydz. — w toku (v0 done, 2026-08-24)
 - [x] Rdzeń deterministyczny **v0** (hotport_trans, prototyp pythonowy z regułami

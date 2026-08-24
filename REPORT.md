@@ -192,6 +192,26 @@ strategia CI-first z ADR-0004.
 
 **Regresja fazy 1:** 1784 przypadki PASS (manifest l1-trace) — nic nie pękło.
 
+## Kamień milowy: pierwszy w pełni zielony CI (2026-08-24, commit 82400c3)
+
+Pipeline działa END-TO-END: push → fmt (zielony) → `cargo test --workspace` →
+build rdzenia i PyO3 → płaski artefakt `.so` → pełna suite vendora (895) →
+pytest spike'a **z prawdziwym backendem rust** (koniec skipów) → bramka
+`--backend rust` (exit-code) → benchmark z kolumną py/rust → artefakt raportów.
+
+Droga do zieleni = 7 naprawionych bugów, każdy wykryty przez INNĄ warstwę:
+
+| # | Bug | Wykryła warstwa |
+|---|-----|-----------------|
+| 1–3 | trzy błędy kompilacji (closure-move, format! typy, prywatny Utf8Error) | pierwsza kompilacja (CI, cargo) |
+| 4 | złe oczekiwanie testu `/00` (probe ze złymi parametrami) | test jednostkowy Rusta (CI) |
+| 5 | operator `?` = routing zamiast invalid w ipv4_core | test jednostkowy Rusta (CI) |
+| 6 | `bool(None)`→False dla nie-stringów w kleju ctypes | differential na .so + kanarek `both` (CI) |
+| 7 | sys.path katalog-pakietu zamiast rodzica | krok bramki w CI (środowisko bez PYTHONPATH) |
+
+Do uzupełnienia: liczby py/rust z benchu (artefakt `spike-reports` — API
+artefaktów/Actions nieosiągalne z sesji; wpisujemy po wklejeniu przez operatora).
+
 ## Co dalej (Faza 2 — pozostało)
 
 - [ ] Pierwszy przebieg CI: kompilacja+testy Rusta, artefakt `.so`, differential
