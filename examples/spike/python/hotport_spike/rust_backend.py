@@ -40,25 +40,38 @@ def _load():
     _lib = lib
 
 
-def _call_str(fn, value):
+def _encode(value):
+    """str → bytes; nie-str → None (routing do Pythona — Z5/ADR-0005).
+
+    UWAGA (bug #6, złapany przez CI na prawdziwym .so): wcześniejsza wersja
+    robiła `bool(_call_str(...))`, czyli `bool(None)` → False dla nie-stringów
+    (np. obiektów UUID!) zamiast None=routing. Ref-backend miał dobrze —
+    dlatego różnica wyszła dopiero na skompilowanym Rust w CI.
+    """
     if not isinstance(value, str):
-        return None  # nie-str → routing
-    data = value.encode("utf-8")
-    return fn(data, len(data))
+        return None
+    return value.encode("utf-8")
 
 
 def slug_core(value):
     _load()
     if _lib is None:
         raise RuntimeError(_load_error)
-    return bool(_call_str(_lib.hotport_slug_is_valid, value))
+    data = _encode(value)
+    if data is None:
+        return None  # poza kontraktem → oryginał Pythona
+    r = _lib.hotport_slug_is_valid(data, len(data))
+    return None if r == -1 else bool(r)
 
 
 def uuid_core(value):
     _load()
     if _lib is None:
         raise RuntimeError(_load_error)
-    r = _call_str(_lib.hotport_uuid_is_valid, value)
+    data = _encode(value)
+    if data is None:
+        return None  # np. obiekt UUID/int → oryginał (uuid(UUID)=True, uuid(123)=AttributeError!)
+    r = _lib.hotport_uuid_is_valid(data, len(data))
     return None if r == -1 else bool(r)
 
 
@@ -66,9 +79,9 @@ def ipv4_core(value, cidr=True, strict=False, host_bit=True):
     _load()
     if _lib is None:
         raise RuntimeError(_load_error)
-    if not isinstance(value, str):
+    data = _encode(value)
+    if data is None:
         return None
-    data = value.encode("utf-8")
     r = _lib.hotport_ipv4_is_valid(data, len(data), bool(cidr), bool(strict), bool(host_bit))
     return None if r == -1 else bool(r)
 

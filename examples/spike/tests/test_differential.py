@@ -46,6 +46,42 @@ def test_differential_python_vs_rust():
     assert not diffs, f"rozbieznosci rust vs python: {len(diffs)}"
 
 
+def test_rust_backend_routing_nie_stringow_bez_so(monkeypatch):
+    """Regresja buga #6 (CI, prawdziwe .so): nie-stringi musza dawac None
+    (routing), nie False. Stub FFI => lapalne takze bez kompilacji Rusta."""
+    import uuid as uuid_mod
+
+    from hotport_spike import rust_backend
+
+    class _FakeFn:
+        def __init__(self, ret):
+            self.ret = ret
+
+        def __call__(self, data, _len, *_flags):
+            assert isinstance(data, bytes), "FFI dostaje wylacznie bytes"
+            return self.ret
+
+    class _FakeLib:
+        hotport_slug_is_valid = _FakeFn(1)
+        hotport_uuid_is_valid = _FakeFn(1)
+        hotport_ipv4_is_valid = _FakeFn(1)
+
+    monkeypatch.setattr(rust_backend, "_lib", _FakeLib())
+    monkeypatch.setattr(rust_backend, "_load_error", None)
+
+    # nie-stringi -> None = routing do oryginahu (Z5); wczesniej bylo bool(None)=False!
+    assert rust_backend.uuid_core(uuid_mod.uuid4()) is None
+    assert rust_backend.uuid_core(123) is None  # oryginal: AttributeError wycieka
+    assert rust_backend.slug_core(None) is None
+    assert rust_backend.ipv4_core(None) is None
+    # string ASCII -> wynik FFI wprost (1 -> True)
+    assert rust_backend.uuid_core("cokolwiek") is True
+    assert rust_backend.ipv4_core("1.1.1.1") is True
+    # -1 z FFI = poza kontraktem rdzenia -> None
+    _FakeLib.hotport_uuid_is_valid = _FakeFn(-1)
+    assert rust_backend.uuid_core("x") is None
+
+
 # ---------------------------------------------------- 3. czulosc bramki
 
 class _Backend:

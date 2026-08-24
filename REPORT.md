@@ -170,6 +170,16 @@ idiosynkratycznych dla Rusta (`?`/ownership) — dwa nety (cień + kompilacja/te
 Rust w CI) to nie opcja, to konieczność. Poprawka: jawne `match` zamiast `?`
 na granicy „parser → werdykt".
 
+**Bug szósty (warstwa transportowa, tylko na prawdziwym .so w CI):**
+`rust_backend` dla nie-stringów robił `bool(None)` → `False` zamiast `None`
+(= routing). Objawy trzy: `uuid(UUID(...))` → false (miało być true),
+`uuid(123)` → false (miało być raise:AttributeError), tryb kanarkowy `both`
+słusznie rzucał `CanaryMismatch`. Ref-backend i logika Rust były poprawne —
+błąd siedział wyłącznie w kleju ctypes, którego **nie dało się zobaczyć bez
+skompilowanego .so** (lokalnie test był skipowany). Dodany test regresyjny ze
+stubem FFI łapie tę klasę błędów także bez Rusta. Dokładnie tego celu służy
+strategia CI-first z ADR-0004.
+
 **Reguły semantyczne v0 (zapisane w kodzie i testach):**
 * mixed int/float porównania: DOZWOLONE tylko dla literału int ≤2^53 (dokładnie
   reprezentowalny w f64; python porównuje wartościowo — koercja zmiennych
