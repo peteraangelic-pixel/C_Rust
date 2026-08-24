@@ -158,6 +158,18 @@ wymagał `Some(false)`, bo odczytałem probe z `strict=True` (tam zawiniły bity
 hosta, nie maska). Lekcja-żelazo: oczekiwanie testu wyprowadzamy wyłącznie z
 probe'u o dokładnie tych parametrach, których używa kod.
 
+**Bug piąty — najcenniejszy (semantyczny, w rdzeniu Rust, złapany przez test
+jednostkowy w CI):** w `ipv4_core` operator `?` na `parse_dotted(addr_s)?` /
+`parse_netmask(m)?` propagował `None` **poza funkcję** — a `None` znaczy w
+umowie rdzenia „poza kontraktem ASCII → routing do Pythona", nie „wartość
+niepoprawna"! `'0127.0.0.1'` zwracało `None` zamiast `Some(false)`. Ref-backend
+(Python, `if addr is None: return False`) był poprawny — dlatego differential
+na cieniu przechodził, a ten bug mógł zjeść dopiero **skompilowany** test
+jednostkowy Rusta w CI. Puenta dla architektury: cień nie widzi bugów
+idiosynkratycznych dla Rusta (`?`/ownership) — dwa nety (cień + kompilacja/testy
+Rust w CI) to nie opcja, to konieczność. Poprawka: jawne `match` zamiast `?`
+na granicy „parser → werdykt".
+
 **Reguły semantyczne v0 (zapisane w kodzie i testach):**
 * mixed int/float porównania: DOZWOLONE tylko dla literału int ≤2^53 (dokładnie
   reprezentowalny w f64; python porównuje wartościowo — koercja zmiennych

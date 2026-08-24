@@ -1,5 +1,6 @@
 # =====================================================================
 # KOPIA ROBOCZA — docelowa ścieżka tego pliku: .github/workflows/ci.yml
+# (wersje akcji zaktualizowane 2026-08-24: node24 — koniec deprecation node20)
 # (ten nagłówek w formie komentarza możesz zostawić lub usunąć — YAML go ignoruje)
 #
 # Dlaczego kopia w docs/: aplikacja GitHub Areny (przez którą idą pushy z
@@ -19,7 +20,7 @@ jobs:
     name: Rust (build + test + .so)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -33,7 +34,7 @@ jobs:
       - name: Build bindingu PyO3 (osobny workspace)
         run: cargo build --release --manifest-path examples/spike/pyo3/Cargo.toml
       - name: Upload .so
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: spike-so
           path: |
@@ -45,14 +46,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: rust
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Zależności
         run: pip install pytest "eth-hash[pycryptodome]"
       - name: Pobierz .so z joba Rust
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: spike-so
           path: ci-artifacts
@@ -72,7 +73,7 @@ jobs:
         run: python examples/spike/python/hotport_spike/bench.py
       - name: Upload raportów
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: spike-reports
           path: examples/spike/report/

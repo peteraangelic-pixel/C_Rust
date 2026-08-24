@@ -174,12 +174,18 @@ pub fn ipv4_core(s: &str, cidr: bool, strict: bool, host_bit: bool) -> Option<bo
     }
     let (addr_s, plen) = match s.split_once('/') {
         None => (s, 32u8), // "a.b.c.d" → /32
-        Some((a, m)) => {
-            let p = parse_netmask(m)?; // błąd maski → invalid (NetmaskValueError→False)
-            (a, p)
-        }
+        Some((a, m)) => match parse_netmask(m) {
+            // UWAGA (bug złapany przez CI): NIE używać `?` — parse_netmask→None
+            // znaczy "błędna maska" → invalid (Some(false)), a nie "poza kontraktem"!
+            Some(p) => (a, p),
+            None => return Some(false), // NetmaskValueError → False
+        },
     };
-    let addr = parse_dotted(addr_s)?; // błąd adresu → invalid
+    // j/w: błąd adresu → invalid, NIE routing (bez `?`)
+    let addr = match parse_dotted(addr_s) {
+        Some(v) => v,
+        None => return Some(false), // AddressValueError → False
+    };
     let host_mask: u32 = if plen == 0 { !0u32 } else { (1u32 << (32 - plen as u32)) - 1 };
     if !host_bit && (addr & host_mask) != 0 {
         return Some(false); // IPv4Network(strict=True): bity hosta muszą być zerem
