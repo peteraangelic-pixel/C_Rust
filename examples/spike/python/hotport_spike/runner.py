@@ -9,7 +9,10 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__))))
+# katalog NAD pakietem (.../python) — tak samo jak conftest; wcześniej wstawiany
+# był katalog pakietu i import hotport_spike działał tylko z PYTHONPATH=python
+# (krok CI go nie ma — bug #7, złapany przez bramkę --backend rust w CI)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import hotport_spike  # noqa: E402,F401 — efekt uboczny: ścieżka vendora na sys.path
 

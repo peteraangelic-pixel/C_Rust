@@ -2,9 +2,9 @@
 
 | fn | przypadki | porównane | routed | rozbieżności |
 |---|---|---|---|---|
-| ipv4 | 703 | 670 | 33 | 0 |
-| slug | 534 | 534 | 0 | 0 |
-| uuid | 547 | 505 | 42 | 0 |
+| ipv4 | 678 | 645 | 33 | 0 |
+| slug | 526 | 526 | 0 | 0 |
+| uuid | 539 | 499 | 40 | 0 |
 
 **Bramka: PASS ✅**
 
