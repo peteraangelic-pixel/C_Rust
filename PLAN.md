@@ -195,11 +195,17 @@ Założenie: 1 osoba, ~10–15 h/tydzień. Przy większym budżecie czasu fazy s
 - **DoD:** `pyaccel verify examples/targets/validators` z REALNYM .so z CI (pending
   push) — na razie spełnione na backendzie ref z prawdziwymi wewołaniami z suite.
 
-### Faza 2 — Translator v1 (tydz. 5–7) ⏱ 3 tydz.
-- [ ] Rdzeń deterministyczny: typy z §2, wyrażenia/kontrola przepływu, mapa stdlib v1 (`str`, `math`, `re` — z tabelą różnic).
-- [ ] Repair loop: błędy `rustc`/`clippy` → automatyczna poprawka (najpierw reguły, potem ew. LLM).
-- [ ] Warstwa LLM jako opcjonalny backend interfejsu `Translator` (temperature 0, cache).
-- [ ] L2: property-based generatory z kontraktów (seedy → powtarzalność).
+### Faza 2 — Translator v1 (tydz. 5–7) ⏱ 3 tydz. — w toku (v0 done, 2026-08-24)
+- [x] Rdzeń deterministyczny **v0** (hotport_trans, prototyp pythonowy z regułami
+      1:1 dla Rust i cienia): 5/5 funkcji celu automatycznie, golden `.rs`
+      commitowane, differential 654/0, K3-routing zademonstrowany (84/133 w
+      safe_mul). Reguły v0: koercja literału ≤2^53, brak truthiness/`//`/`%`/`**`/try,
+      `len→chars().count()`, checked_add/sub/mul.
+- [ ] Kompilacja wygenerowanego Rusta + repair loop (wymaga włączonego CI — patrz
+      docs/CI.md); potem przeniesienie reguł do crate hotport-trans oraz benchmark
+      ≥×2 na min. 3 funkcjach (DoD fazy 2).
+- [x] L2 property-based z seedami — rozszerzone o cele translatora (granice i64,
+      NaN/inf, unicode, stratyfikacja krawędzi mnożenia).
 - **DoD:** ≥ 5 funkcji z `validators` przełożonych automatycznie, bramka L1+L2 zielona, benchmark ≥ ×2 na min. 3 z nich.
 
 ### Faza 3 — Głębokość weryfikacji i raport (tydz. 8–9) ⏱ 2 tyg.

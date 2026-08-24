@@ -176,3 +176,50 @@ def generate(seed=42, per_fn=250):
 
 def all_cases(seed=42, per_fn=250):
     return L1 + generate(seed=seed, per_fn=per_fn)
+
+
+# ---------------------------------------------------------------- demo (translator v0)
+
+DEMO_L1 = [
+    {"fn": "in_band", "args": [0.5, 0.0, 1.0], "kwargs": {}, "origin": "l1"},
+    {"fn": "in_band", "args": [500.0, float("-inf"), 400.0], "kwargs": {}, "origin": "l1"},
+    {"fn": "grade", "args": [95.0], "kwargs": {}, "origin": "l1"},
+    {"fn": "grade", "args": [59.99], "kwargs": {}, "origin": "l1"},
+    {"fn": "sum_upto", "args": [10], "kwargs": {}, "origin": "l1"},
+    {"fn": "sum_upto", "args": [0], "kwargs": {}, "origin": "l1"},
+    {"fn": "code_ok", "args": ["AB-1234-CD", "AB"], "kwargs": {}, "origin": "l1"},
+    {"fn": "code_ok", "args": ["short", "s"], "kwargs": {}, "origin": "l1"},
+]
+
+
+def demo_cases(seed=99, per_fn=120):
+    """Zestaw L2 dla celów translatora v0 — z granicami K3 (i64!) i K2 (NaN/inf)."""
+    rng = random.Random(seed)
+    out = list(DEMO_L1)
+
+    def add(fn, *a):
+        out.append({"fn": fn, "args": list(a), "kwargs": {}, "origin": "l2-demo"})
+
+    fast_ns = [0, 1, 5, 100, 1000, 20_000, -5]
+    for _ in range(per_fn):
+        add("in_band", rng.uniform(-100, 100), rng.uniform(-100, 100), rng.uniform(-100, 100))
+        add("grade", rng.uniform(-10, 110))
+        add("sum_upto", rng.choice(fast_ns + [rng.randint(-100, 2000)]))
+        # granice K3 na O(1): safe_mul (oracle natychmiast, rdzeń checked_mul)
+        a = rng.choice([rng.randint(-10, 10), rng.randint(-(2**62), 2**62), 2**62, -(2**63), 2**63 - 1, 2**63])
+        b = rng.choice([rng.randint(-10, 10), rng.randint(-4, 4), 2**31, 2**63 - 1, 2])
+        add("safe_mul", a, b)
+        code = "".join(rng.choice("ab12-") for _ in range(rng.randint(0, 14)))
+        add("code_ok", code, rng.choice(["a", "b", "ab", "x", ""]))
+    # stratyfikowane krawędzie mnożenia (przepełnienia i okoliczne wartości)
+    for a, b in [(2, 3), (0, 2**63 - 1), (2**62, 1), (2**62, 2), (2**31, 2**31),
+                 (2**63 - 1, 2), (-(2**63), 1), (-(2**63), 2), (-1, 2**63 - 1),
+                 (3_037_000_499, 3_037_000_500), (2**40, 2**23), (2**63, 1), (2**63 + 1, 1)]:
+        add("safe_mul", a, b)
+    # unicode: len w punktach kodowych (chars().count() w rust — pułapka bajtów)
+    add("code_ok", "ńą日本語123-", "ń")
+    for f in [0.0, -0.0, 1.0, -1.0, 90.0, 89.999999, 75.0, 60.0, 59.9,
+              float("inf"), float("-inf"), float("nan"), 1e308, -1e308, 0.1, -0.1]:
+        add("in_band", f, -1000.0, 1000.0)
+        add("grade", f)
+    return out

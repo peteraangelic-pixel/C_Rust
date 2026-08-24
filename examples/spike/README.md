@@ -11,6 +11,8 @@ i zweryfikować — zanim powstanie jakikolwiek automatyczny translator.
 | `pyo3/` | Binding PyO3 (osobny workspace; budowany w CI — ADR-0004) |
 | `python/hotport_spike/` | Shim API 1:1 (reużywa dekorator `@validator`), backendy `ref`/`rust`, generatory L1/L2, silnik differential z bramką, benchmark |
 | `python/hotport_tracer/` | **Tracer v1 (Faza 1)**: ślad wywołań → manifest `hotport.manifest/0.1.0` (kształty typów, K4, ASCII, replay) |
+| `python/hotport_trans/` | **Translator v0 (Faza 2)**: podzbiór Pythona → Rust (golden `.rs`) + cień (wykonywalna specyfikacja reguł) |
+| `generated/` | Artefakty translatora (commitowane golden): `*.rs`, `shadow_generated.py` |
 | `tests/` | pytest: differential, czułość bramki (wstrzyknięte bugi), parzystość API, kanarek `both`, tracer + integracja end-to-end |
 | `report/` | Generowane raporty (differential-*.md, bench.md) |
 | `manifest-validators.json` | Artefakt: manifest ze śladu suite vendora (commitowany jako dowód) |

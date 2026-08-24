@@ -20,6 +20,43 @@ from hotport_spike import ref_backend, rust_backend  # noqa: E402
 _FN = {"slug": validators.slug, "uuid": validators.uuid, "ipv4": validators.ipv4}
 _SUPPORTED_KWARGS = {"cidr", "strict", "host_bit"}
 _UNREPLAYABLE = object()
+_EXTRA_PY = {}  # rejestr celów spoza validators (np. demo_fns dla translatora v0)
+
+
+def register_python(name, fn):
+    """Zarejestruj oryginał dla funkcji-celu spoza validators (translator v0)."""
+    _EXTRA_PY[name] = fn
+
+
+def python_fn(name):
+    if name in _EXTRA_PY:
+        return _EXTRA_PY[name]
+    if name in _FN:
+        return _FN[name]
+    raise KeyError(f"nieznana funkcja celu: {name}")
+
+
+def _label(r):
+    """Normalizacja wyniku do porównywalnej etykiety (K1/K2: polityka ścisła)."""
+    if isinstance(r, bool):
+        return "true" if r else "false"
+    if isinstance(r, float):
+        return "float:" + repr(r)  # nan/-inf/0.0 konsekwentnie; ścisła polityka K2
+    if isinstance(r, int):
+        return "int:" + str(r)
+    if isinstance(r, str):
+        return "str:" + r
+    if r is None:
+        return "none"
+    # obiekty z __bool__ (np. ValidationError w validators) → zgodnie z semantyką
+    # predykatów (zachowanie identyczne jak w fazie 0/1)
+    return "true" if bool(r) else "false"
+
+
+def _case_args(case):
+    if "args" in case:
+        return list(case["args"])
+    return [case["value"]]
 
 
 def _decode(v):
@@ -67,26 +104,30 @@ def cases_from_manifest(manifest):
 
 
 def py_outcome(case):
-    """true/false/raise:ExcName — przez pełne API (dekorator włącznie)."""
+    """true/false/int:N/float:X/str:S/raise:ExcName — przez pełne API oryginału."""
     try:
-        r = _FN[case["fn"]](case["value"], **case.get("kwargs", {}))
-    except Exception as e:  # noqa: BLE001 — chcemy klasyfikować WSZYSTKIE
+        r = python_fn(case["fn"])(*_case_args(case), **case.get("kwargs", {}))
+    except Exception as e:  # noqa: BLE001 — klasyfikujemy WSZYSTKIE
         return f"raise:{type(e).__name__}"
-    return "true" if bool(r) else "false"
+    return _label(r)
 
 
 def core_outcome(backend, case):
-    """true/false/routed — bez dekoratora, czysty predykat rdzenia."""
+    """etykieta wyniku / routed / error:Exc — czysty predykat rdzenia (cień/backend)."""
     try:
-        r = backend.CORES[case["fn"]](case["value"], **case.get("kwargs", {}))
+        r = backend.CORES[case["fn"]](*_case_args(case), **case.get("kwargs", {}))
     except Exception as e:  # noqa: BLE001
         return f"error:{type(e).__name__}"
-    return "routed" if r is None else ("true" if r else "false")
+    return "routed" if r is None else _label(r)
+
+
+_I64_MIN, _I64_MAX = -(2**63), 2**63 - 1
 
 
 def compare(backend, cases):
     """Zwraca (statystyki, rozbieżności). routed nie liczy się do porównania
-    rdzenia, ale ścieżka shimu i tak przechodzi parity w testach pytest."""
+    rdzenia, ale MUSI być uzasadnione (Z5): nie-str/nie-ASCII (validators, ADR-0005)
+    albo int poza i64 (cele translatora v0, kontrakt K3)."""
     stats = {}
     diffs = []
     for case in cases:
@@ -97,10 +138,22 @@ def compare(backend, cases):
         core = core_outcome(backend, case)
         if core == "routed":
             s["routed"] += 1
-            # routing musi być uzasadniony: nie-str albo nie-ASCII
-            v = case["value"]
-            if isinstance(v, str) and v.isascii() and not (case["fn"] == "ipv4" and case.get("kwargs", {}).get("private") is not None):
-                diffs.append({**case, "py": py, "core": core, "reason": "NIEUZASADNIONY routing (ASCII str)"})
+            args = _case_args(case)
+            if fn in _EXTRA_PY:
+                justified = any(
+                    isinstance(a, int) and not isinstance(a, bool) and not (_I64_MIN <= a <= _I64_MAX)
+                    for a in args
+                ) or (py.startswith("int:") and not (_I64_MIN <= int(py[4:]) <= _I64_MAX))
+                # (druga klauzula: WYNIK oryginału poza i64 → checked_* słusznie zwróciło None)
+            else:
+                v = args[0] if args else None
+                justified = (
+                    not isinstance(v, str)
+                    or not v.isascii()
+                    or (fn == "ipv4" and case.get("kwargs", {}).get("private") is not None)
+                )
+            if not justified:
+                diffs.append({**case, "py": py, "core": core, "reason": "NIEUZASADNIONY routing"})
                 s["mismatch"] += 1
             continue
         s["compared"] += 1

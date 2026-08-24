@@ -120,7 +120,48 @@ suite vendora ──(tracer)──► manifest-validators.json ──(replay)─
 * testy: 17 passed (tracer: kształty, K4, dedup, roundtrip manifestu,
   integracja end-to-end; 1 skip = backend `rust` czeka na .so z CI).
 
-## Co dalej (Faza 1 — pozostało)
+## Faza 2 — translator deterministyczny v0 (2026-08-24, sesja 3)
+
+**Nowe komponenty:** `examples/spike/python/hotport_trans/` (translator v0),
+`examples/targets/demo_fns.py` (syntetyczny moduł-cel), `examples/spike/generated/`
+(golden: `.rs` + cień — commitowane artefakty), runner uogólniony (rejestr celów,
+etykiety wyników `int:/float:/str:`, przypadki wieloargumentowe).
+
+**Podejście podwójnej siatki bezpieczeństwa** (rozszerzenie metodologii ref z fazy 0):
+translator emituje RÓWNOCZEŚNIE (1) kod Rust (tekst — kompilacja w CI) i
+(2) **cień** — Python z guardami semantyki Rust (koercja `float()` = `as f64`,
+`_bin` z kontrolą i64 = `checked_*`). Cień differentialowo weryfikujemy wobec
+oryginału już dziś; golden-testy blokują drift reguł.
+
+**Wynik: 5/5 funkcji przetłumaczonych automatycznie** (in_band, grade, sum_upto,
+code_ok, safe_mul), differential **654 przypadki / 0 rozbieżności**, w tym:
+* `safe_mul`: **84/133 wywołania routowane** na krawędziach i64 (K3 żyje:
+  `2^62×2 → None` = routing, `-(2^63)×1` = OK, `2^63×1` = routing argumentu),
+* NaN/±inf w grade/in_band zgodne, `len(unicode)` = punkty kodowe = `chars().count()`.
+
+**Bugi znalezione po drodze (4 — wszystkie udokumentowane w testach):**
+1. **AST `Mult` ≠ „Mul"** — mapa operatorów miała złą nazwę węzła (safe_mul
+   „nieobsługiwany") — klasyczny błąd nazewnictwa ast.
+2. **`let` zamiast przypisania w pętli** (`total = total + i` emitował `let mut
+   total = ...` → shadowing, funkcja zawsze zwracałaby 0). **Cień tego NIE
+   wyłapał** (Python nie ma deklaracji) — dowód, że potrzebne są DWA nety:
+   cień (błędy reguł) + golden/kompilacja (błędy emitera tekstu Rust).
+3. **`.startswith` nie istnieje w Rust** (`starts_with`) — mapowanie nazw metod.
+4. Wcięcie guardów i64 w generowanym cieniu (SyntaxError przy exec).
+
+**Reguły semantyczne v0 (zapisane w kodzie i testach):**
+* mixed int/float porównania: DOZWOLONE tylko dla literału int ≤2^53 (dokładnie
+  reprezentowalny w f64; python porównuje wartościowo — koercja zmiennych
+  odrzucona, bo gubi precyzję ≥2^53 — pułapka K2),
+* cień symuluje `as f64` przez `float()` — różnica vs dokładny oracle na wielkich
+  intach WYJDZIE w differentialu (świadomie, zamiast cichego przekłamania),
+* brak truthiness (`if s:` → odrzucone), `//`, `%`, `**`, try/except — poza v0,
+* pułapka wydajności differentialu: oracle z pętlą O(n) nie może dostawać
+  granicznych n (zawiesza suitę) — granice K3 testujemy na funkcjach O(1).
+
+**Regresja fazy 1:** 1784 przypadki PASS (manifest l1-trace) — nic nie pękło.
+
+## Co dalej (Faza 2 — pozostało)
 
 - [ ] Pierwszy przebieg CI: kompilacja+testy Rusta, artefakt `.so`, differential
       na backendie `rust` (odznaczyć skip w sandboxie) i kolumna py/rust w benchu,
