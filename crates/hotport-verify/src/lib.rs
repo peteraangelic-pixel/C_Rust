@@ -85,10 +85,16 @@ fn push_path(prefix: &str, key: &str) -> String {
     if prefix.is_empty() { key.to_string() } else { format!("{prefix}.{key}") }
 }
 
+fn mismatch(a: &Value, b: &Value, path: &str) -> Diff {
+    Diff::NotEqual { path: path.to_string(), left: a.clone(), right: b.clone() }
+}
+
 fn eq_value(a: &Value, b: &Value, p: &FloatPolicy, path: &str) -> Diff {
-    let mismatch = || Diff::NotEqual { path: path.to_string(), left: a.clone(), right: b.clone() };
     match (a, b) {
-        (Value::Float(x), Value::Float(y)) => eq_float(*x, *y, p).unwrap_or_else(mismatch),
+        (Value::Float(x), Value::Float(y)) => match eq_float(*x, *y, p) {
+            Some(d) => d,
+            None => mismatch(a, b, path),
+        },
         (Value::Int(x), Value::Int(y)) if x == y => Diff::Equal,
         (Value::Bool(x), Value::Bool(y)) if x == y => Diff::Equal,
         (Value::Null, Value::Null) => Diff::Equal,
@@ -96,11 +102,7 @@ fn eq_value(a: &Value, b: &Value, p: &FloatPolicy, path: &str) -> Diff {
         (Value::Bytes(x), Value::Bytes(y)) if x == y => Diff::Equal,
         (Value::List(x), Value::List(y)) => {
             if x.len() != y.len() {
-                return Diff::NotEqual {
-                    path: push_path(path, "len"),
-                    left: a.clone(),
-                    right: b.clone(),
-                };
+                return mismatch(a, b, &push_path(path, "len"));
             }
             for (i, (xi, yi)) in x.iter().zip(y.iter()).enumerate() {
                 let d = eq_value(xi, yi, p, &push_path(path, &format!("[{i}]")));
@@ -112,11 +114,7 @@ fn eq_value(a: &Value, b: &Value, p: &FloatPolicy, path: &str) -> Diff {
         }
         (Value::Dict(x), Value::Dict(y)) => {
             if x.len() != y.len() {
-                return Diff::NotEqual {
-                    path: push_path(path, "len"),
-                    left: a.clone(),
-                    right: b.clone(),
-                };
+                return mismatch(a, b, &push_path(path, "len"));
             }
             for ((xk, xv), (yk, yv)) in x.iter().zip(y.iter()) {
                 let kd = eq_value(xk, yk, p, &push_path(path, "key"));
@@ -134,7 +132,7 @@ fn eq_value(a: &Value, b: &Value, p: &FloatPolicy, path: &str) -> Diff {
             }
             Diff::Equal
         }
-        _ => mismatch(),
+        _ => mismatch(a, b, path),
     }
 }
 

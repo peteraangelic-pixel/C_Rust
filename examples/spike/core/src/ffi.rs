@@ -8,14 +8,13 @@
 //! rdzenia — FFI i PyO3 różnią się wyłącznie kosztem przejścia przez granicę.
 
 use std::ffi::c_char;
-use std::str::Utf8Error;
 
-unsafe fn borrow<'a>(ptr: *const c_char, len: usize) -> Result<&'a str, Utf8Error> {
+unsafe fn borrow<'a>(ptr: *const c_char, len: usize) -> Option<&'a str> {
     if ptr.is_null() {
-        return Err(Utf8Error {});
+        return None;
     }
     let bytes = std::slice::from_raw_parts(ptr as *const u8, len);
-    std::str::from_utf8(bytes)
+    std::str::from_utf8(bytes).ok()
 }
 
 fn opt_to_i32(v: Option<bool>) -> i32 {
@@ -31,8 +30,8 @@ fn opt_to_i32(v: Option<bool>) -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn hotport_slug_is_valid(ptr: *const c_char, len: usize) -> i32 {
     match borrow(ptr, len) {
-        Ok(s) => opt_to_i32(Some(crate::slug_core(s))),
-        Err(_) => -1,
+        Some(s) => opt_to_i32(Some(crate::slug_core(s))),
+        None => -1,
     }
 }
 
@@ -41,8 +40,8 @@ pub unsafe extern "C" fn hotport_slug_is_valid(ptr: *const c_char, len: usize) -
 #[no_mangle]
 pub unsafe extern "C" fn hotport_uuid_is_valid(ptr: *const c_char, len: usize) -> i32 {
     match borrow(ptr, len) {
-        Ok(s) => opt_to_i32(crate::uuid_core(s)),
-        Err(_) => -1,
+        Some(s) => opt_to_i32(crate::uuid_core(s)),
+        None => -1,
     }
 }
 
@@ -58,7 +57,7 @@ pub unsafe extern "C" fn hotport_ipv4_is_valid(
     host_bit: u8,
 ) -> i32 {
     match borrow(ptr, len) {
-        Ok(s) => opt_to_i32(crate::ipv4_core(s, cidr != 0, strict != 0, host_bit != 0)),
-        Err(_) => -1,
+        Some(s) => opt_to_i32(crate::ipv4_core(s, cidr != 0, strict != 0, host_bit != 0)),
+        None => -1,
     }
 }

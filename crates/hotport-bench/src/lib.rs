@@ -89,7 +89,7 @@ pub fn render_report(rows: &[BenchRow]) -> String {
                     name,
                     s.median_ns_per_op,
                     s.p95_ns_per_op,
-                    if name == "python" { &speedup } else { "" }
+                    if name == "python" { speedup.as_str() } else { "" }
                 ));
             }
         }
