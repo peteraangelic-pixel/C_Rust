@@ -209,8 +209,30 @@ Droga do zieleni = 7 naprawionych bugów, każdy wykryty przez INNĄ warstwę:
 | 6 | `bool(None)`→False dla nie-stringów w kleju ctypes | differential na .so + kanarek `both` (CI) |
 | 7 | sys.path katalog-pakietu zamiast rodzica | krok bramki w CI (środowisko bez PYTHONPATH) |
 
-Do uzupełnienia: liczby py/rust z benchu (artefakt `spike-reports` — API
-artefaktów/Actions nieosiągalne z sesji; wpisujemy po wklejeniu przez operatora).
+Do uzupełnienia → **UZUPEŁNIONE (pełne logi runa 82400c3, oba joby zielone):**
+
+* suite vendora: **895 passed**; pytest spike'a: **27 passed, 0 skipped**
+  (differential na prawdziwym `.so` wystartował — koniec ery skipów),
+* bramka: `backend=rust 1743 przypadki, verdict=PASS ✅`
+  (ipv4 645 porównanych/33 routed, slug 526/0, uuid 499/40 — 0 rozbieżności),
+* **benchmark (median ns/op, GH runner, rustc 1.98, pyo3 0.23.5):**
+
+| fn | python (validators) | ref (spec, py) | **rust (ctypes)** | py/ref | **py/rust** |
+|---|---|---|---|---|---|
+| slug | 4161 | 1045 | **615** | 3.98× | **6.77×** |
+| uuid | 4105 | 877 | **909** | 4.68× | **4.52×** |
+| ipv4 | 10105 | 1290 | **1195** | 7.83× | **8.46×** |
+
+**Analiza (R2 w liczbach):** nawet przez ctypes (podatek FFI rzędu 0,4–1 µs
+na wywołanie — widać go jako różnicę rust vs ref, bo czysty rdzeń liczy
+~100–300 ns) port daje **4,5–8,5×**. Ciekawostka: `uuid` jest jedynym
+przypadkiem, gdzie ctypes-Rust (909) przegrywa z pythonową specyfikacją (877)
+— koszt FFI + alokacje w transformacjach stringów zjadł przewagę rdzenia;
+mimo to pozostaje 4,5× szybszy od oryginału. Wniosek strategiczny potwierdzony:
+**docelowa architektura = PyO3 + tłumaczenie całych klastrów** (jedno przejście
+przez granicę na łańcuch wywołań, nie na liść), bo wtedy podatek FFI znika
+ze statystyki per-wywołanie. DoD fazy 2 (benchmark ≥×2 na min. 3 funkcjach):
+**spełnione 4,52×/6,77×/8,46×**.
 
 ## Co dalej (Faza 2 — pozostało)
 

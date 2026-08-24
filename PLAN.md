@@ -205,9 +205,12 @@ Założenie: 1 osoba, ~10–15 h/tydzień. Przy większym budżecie czasu fazy s
       commitowane, differential 654/0, K3-routing zademonstrowany (84/133 w
       safe_mul). Reguły v0: koercja literału ≤2^53, brak truthiness/`//`/`%`/`**`/try,
       `len→chars().count()`, checked_add/sub/mul.
-- [ ] Kompilacja wygenerowanego Rusta + repair loop (wymaga włączonego CI — patrz
-      docs/CI.md); potem przeniesienie reguł do crate hotport-trans oraz benchmark
-      ≥×2 na min. 3 funkcjach (DoD fazy 2).
+- [x] CI pełne zielone (2026-08-24, run 82400c3): 895+27 testów, bramka rust
+      1743 PASS, **benchmark DoD spełniony: 4,52×/6,77×/8,46× przez ctypes**
+      (uuid jako jedyny gorszy od pythonowej specyfikacji — podatek FFI+alokacje;
+      potwierdzenie strategii klastrów + PyO3).
+- [ ] Podpięcie generated/*.rs do kompilacji w CI + repair loop rustc;
+      przeniesienie reguł v0 do crate hotport-trans; upgrade pyo3 (0.23.5 → 0.29).
 - [x] L2 property-based z seedami — rozszerzone o cele translatora (granice i64,
       NaN/inf, unicode, stratyfikacja krawędzi mnożenia).
 - **DoD:** ≥ 5 funkcji z `validators` przełożonych automatycznie, bramka L1+L2 zielona, benchmark ≥ ×2 na min. 3 z nich.
