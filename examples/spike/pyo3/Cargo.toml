@@ -1,0 +1,14 @@
+[package]
+name = "hotport-spike-pyo3"
+version = "0.0.1"
+edition = "2021"
+license = "Apache-2.0"
+description = "Spike fazy 0: binding PyO3 do hotport-spike-core (budowane w CI — wymaga crates.io)"
+
+[lib]
+name = "hotport_spike"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.23", features = ["extension-module", "abi3-py39"] }
+hotport-spike-core = { path = "../core" }

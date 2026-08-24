@@ -1,0 +1,23 @@
+# Rust
+/target
+Cargo.lock
+**/*.rs.bk
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+
+# Spike artefakty
+examples/spike/report/*.json
+examples/spike/**/*.so
+examples/spike/python/hotport_spike/*.so
+
+# Workflow CI trzyma sie poza gitem do czasu nadania aplikacji Areny uprawnien
+# 'workflows' (patrz docs/CI.md) — plik zostaje na dysku, dodaj go recznie na GitHubie
+.github/workflows/ci.yml

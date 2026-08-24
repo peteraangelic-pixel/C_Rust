@@ -1,0 +1,149 @@
+# REPORT — Faza 0: spike walidacyjny (2026-08-24)
+
+> Cel fazy (PLAN.md §Faza 0): **udowodnić, nie założyć** — ręczny port 3 funkcji
+> biblioteki `validators` 0.35.0 na Rust + silnik differential z bramką.
+> Odpowiedź na pytanie „czy to w ogóle da się zrobić" brzmi: **tak, i harness
+> łapie prawdziwe bugi — w tym cztery moje własne.**
+
+## Streszczenie w liczbach
+
+| Miara | Wynik |
+|---|---|
+| Przypadki differential (L1 replay + L2 seedowane, seed=42) | **1743** |
+| Rozbieżności ref-spec vs oryginał Pythona | **0** (PASS ✅) |
+| Pokryte rdzeniem (po routing) | 1670 (uuid 499/539, ipv4 645/678, slug 526/526) |
+| Routing per-wejście (kontrakt ASCII, ADR-0005) | 73 — wszystkie uzasadnione |
+| Wstrzyknięte bugi wyłapane przez bramkę | **5/5** |
+| Testy pytest spike'a | 13 passed, 1 skipped (backend `rust` — wymaga .so, odpala się w CI) |
+| Pełna suite vendora (sanity) | **895 passed** |
+| Czułość parzystości API | 3 tryby shimu × 1743 przypadki — identyczne wyniki, w tym wycieki wyjątków |
+
+Benchmark (median ns/op, wejścia z generatora L2):
+
+| fn | python (validators) | ref (spec w Pythonie) | py/ref |
+|---|---|---|---|
+| slug | 5418 | 1197 | 4.52× |
+| uuid | 5529 | 1059 | 5.22× |
+| ipv4 | 15928 | 1542 | 10.33× |
+
+**Uczciwa interpretacja:** kolumna `ref` to wciąż Python (bez `re`/`ipaddress`/
+`uuid`/dekoratora) — 4–10× zysku **nie wymaga w ogóle Rusta**, to efekt omijania
+ciężkiej machinerii stdlib. Kolumna `rust` (ctypes, w CI) będzie zawierać podatek
+FFI ~0,3–1 µs — dla tych mikro-funkcji może zjeść cały zysk (ryzyko R2 z PLAN.md).
+Potwierdza to tezę architektoniczną: tłumaczyć **klastry** (jedno przejście przez
+granicę FFI), nie pojedyncze liście, i celować w PyO3.
+
+## Ograniczenie środowiska (ADR-0004)
+
+Sandbox dev nie ma sieci do crates.io / static.rust-lang.org / GitHub Releases
+→ brak toolchaina Rusta lokalnie. W konsekwencji:
+
+* kod Rust jest **kompletny** (rdzeń std-only + FFI + binding PyO3) i kompiluje/
+  testuje się w **CI** (workflow `ci.yml`: fmt, testy, build, artefakt `.so`
+  zasilający differential w jobie Pythona),
+* poprawność **logiki** jest mimo to udowodniona już dziś: backend `ref` to
+  linia-po-linii wykonywalna specyfikacja rdzenia Rust, zweryfikowana
+  differentialowo wobec oryginału na 1743 przypadkach.
+
+## Złote reguły — pułapki wykryte empirycznie (probe-first, nie z dokumentacji)
+
+Wszystkie potwierdzone na Pythonie 3.11 przed napisaniem jakiejkolwiek linii Rusta:
+
+| # | Zachowanie oryginału | Konsekwencja dla portu |
+|---|---|---|
+| G1 | `slug("abc\n")` → **True** (`$` w `re` dopasowuje przed JEDNYM końcowym `\n`) | obetnij max 1 końcowy `\n` przed automatem |
+| G2 | `uuid`: `'uuid:'` działa **bez** `'urn:'`, replace jest **wszędzie** w stringu, tylko małymi literami (`URN:UUID:` → invalid) | replace-anywhere, case-sensitive, w kolejności urn→uuid |
+| G3 | `uuid`: `strip("{}")` to zbiór znaków na końcach (nie prefiks/sufiks), dowolna liczba | `trim_matches` z predykatem `{`/`}` |
+| G4 | `uuid`: `'+2bc1…ec9f'` (plus + 31 hex) → **VALID** — `int()` przyjmuje znak | gramatyka `+?` przed hexami |
+| G5 | `uuid`: podkreślniki PEP 515 między hexami → **VALID** | pojedyncze `_` między cyframi |
+| G6 | `uuid`: 30 hexów + 2 spacje/tabulator/`\x0b` → **VALID** — `int()` obcina białe znaki (zbiór: spacja, `\t`, `\n`, `\r`, `\x0b`, `\x0c` — **szerszy niż Rust `is_ascii_whitespace`!**) | jawny zbiór trimowanych znaków, nie helper |
+| G7 | `uuid`: arabskie `٢` zamiast cyfry → **VALID** (unicode Nd w `int()`) | **poza kontraktem ASCII** → routing (ADR-0005) |
+| G8 | `uuid`: `'-' + kanoniczny_z_myślnikami` → **VALID** (`replace('-','')` usuwa też znak liczby!), ale `'-' + 31hex` → invalid (zostaje 31) | usuwaj wszystkie `-` przed checkiem długości; „ujemne UUID" nie istnieją |
+| G9 | `ipv4`: oktet `'01'` → invalid, ale prefix `'/024'` → **VALID** (asymetria ipaddress!) | osobne reguły parsera oktetu i prefiksu |
+| G10 | `ipv4`: maska kropkowana musi być ciągła (`255.0.255.0` invalid), a jej oktety też bez zer wiodących (`255.255.255.00` invalid) | walidacja maski przez sprawdzanie ciągłości |
+| G11 | `ipv4`: `'/+24'`, `'/ 24'`, `'/٣٢'` → invalid (isascii+isdigit **przed** `int()`) | whitelist cyfr ASCII w prefiksie |
+| G12 | `validators.uuid(123)` → **AttributeError wycieka** przez dekorator (łapie tylko ValueError/TypeError/UnicodeError) | parzystość API przez routing nie-str do oryginału + reużycie ich dekoratora |
+| G13 | falsy-guard: `uuid(0)`, `slug(None)`, `ipv4('')` → ValidationError (nie wyjątek) | zachowane automatycznie przez reużycie `@validator` |
+
+## Bugi znalezione przez harness W TRAKCIE spike'a (dowód czułości)
+
+1. **Mój automat slugu** przyjmował wiodujący `'-'` (inicjalny stan flagi) —
+   differential [L2] to wyłapał na `-fz3zfk-…` (py=false, core=true).
+2. **Moja gramatyka uuid** odrzucała cyfrę po podkreślniku (błędny stan po `_`).
+3. **Moja teoria „ujemnego UUID"** była błędna (patrz G8) — harness pokazał,
+   że `'-'+kanoniczny` jest VALID, zanim zdążyłem wprowadzić ją do rdzenia.
+4. **Brak trimowania białych znaków** w pierwszej wersji gramatyki (G6).
+5. Celowo **wstrzyknięte bugi** (5 scenariuszy: wiodący `-` w slugu; pominięte
+   usuwanie myślników w uuid; odrzucenie PEP 515; zera wiodące w oktetach;
+   odrzucenie `/024`) — **wszystkie oflagowane**, każdy na właściwym przypadku.
+
+## Wnioski architektoniczne (przenoszone do fazy 1)
+
+1. **Routing per-WEJŚCIE** (ADR-0005) sprawdza się w praktyce: 73/1743 wywołań
+   poszło do oryginału (głównie unicode z mutacji L2), a funkcje i tak są
+   „promowalne" — kontrakt zamiast rezygnacji z funkcji.
+2. **Reużycie dekoratora `@validator`** w shimie = parzystość API (Z1) z definicji:
+   identyczne `ValidationError`, identyczne wycieki wyjątków, identyczny env
+   `RAISE_VALIDATION_ERROR`. Zero hand-rolled parzystości.
+3. **Wykonywalna specyfikacja (`ref`) przed Rustem** to tania opcja wyjścia
+   (executable spec) — pisz port dopiero, gdy spec przejdzie differential.
+4. **Probe-first**: żadnej reguły nie zakładamy z dokumentacji — wszystko
+   empirycznie wobec prawdziwego interpretera (to zalążek przyszłego tracera
+   kontraktów L2 z PLAN.md).
+5. **Bramka ma exit-code** — od dziś nadaje się do CI (workflow podpięty).
+
+## Faza 1 — tracer v1 + zamknięcie pętli (2026-08-24, sesja 2)
+
+**Nowy komponent:** `examples/spike/python/hotport_tracer/` (PLAN.md §3 [1]).
+
+* Wrapuje funkcje biblioteki-celu i rejestruje: liczniki, czas własny (ns),
+  **kształty typów** argumentów/wyników (`list[int|str]`, `dict[str->int]`,
+  `uuid.UUID`…), zaobserwowane wyjątki, **detekcję mutacji kontenerów** (K4,
+  snapshoty repr przed/po), **frakcję ASCII** argumentów (ADR-0005) oraz
+  **próbki replay** prawdziwych argumentów (dedup + capy + redakcja rozmiaru).
+* **Manifest ZAMROŻONY: `hotport.manifest/0.1.0`** (reguły semver w nagłówku
+  `manifest.py`: nowe pole opcjonalne = minor; zmiana semantyki = major).
+* CLI: `python -m hotport_tracer --module validators --names slug uuid ipv4
+  --pytest <suite> --out manifest-validators.json` → artefakt commitowany.
+
+**Pętla zamknięta (test integracyjny + runner):**
+
+```
+suite vendora ──(tracer)──► manifest-validators.json ──(replay)──► differential ──► bramka
+```
+
+* Wynik na prawdziwych danych: ipv4 45 wywołań/25 próbek, slug 8/8, uuid 8/8,
+  **ascii_fraction = 1.0** (żadne prawdziwe wywołanie nie wymagało routingu —
+  koszt kontraktu ASCII w praktyce ≈ 0),
+* runner `--manifest`: **+41 przypadków l1-trace**, łącznie **1784 przypadki,
+  PASS ✅, 0 rozbieżności**,
+* testy: 17 passed (tracer: kształty, K4, dedup, roundtrip manifestu,
+  integracja end-to-end; 1 skip = backend `rust` czeka na .so z CI).
+
+## Co dalej (Faza 1 — pozostało)
+
+- [ ] Pierwszy przebieg CI: kompilacja+testy Rusta, artefakt `.so`, differential
+      na backendie `rust` (odznaczyć skip w sandboxie) i kolumna py/rust w benchu,
+- [ ] Tracer v1 (profil + typy + harvest argumentów → `manifest.json`),
+- [ ] Zamrożenie formatu manifestu (semver) + serde w CI,
+- [ ] Rozszerzenie zestawu L2 o mutacje strukturalne (fuzzing L3 dla parserów),
+- [ ] Drugi cel demonstracyjny (`python-slugify`).
+
+## Odtworzenie wyników
+
+```bash
+pip install pytest "eth-hash[pycryptodome]"
+python -m pytest examples/spike -q                       # 17 passed (1 skipped bez .so)
+python examples/spike/python/hotport_spike/runner.py --backend ref    # bramka PASS
+PYTHONPATH=examples/spike/python:examples/targets/validators/src \
+  python -m hotport_tracer --module validators --names slug uuid ipv4 \
+  --pytest examples/targets/validators/tests/test_slug.py \
+             examples/targets/validators/tests/test_uuid.py \
+             examples/targets/validators/tests/test_ip_address.py \
+  --out examples/spike/manifest-validators.json           # ślad → manifest
+python examples/spike/python/hotport_spike/runner.py --backend ref \
+  --manifest examples/spike/manifest-validators.json      # pętla zamknięta (1784 PASS)
+python examples/spike/python/hotport_spike/bench.py
+PYTHONPATH=examples/targets/validators/src \
+  python -m pytest examples/targets/validators/tests -q                # 895 passed
+```

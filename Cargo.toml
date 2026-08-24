@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/hotport-core",
+    "crates/hotport-verify",
+    "crates/hotport-trans",
+    "crates/hotport-bench",
+    "crates/hotport-cli",
+    "examples/spike/core",
+]
+# Osobny workspace: wymaga pyo3 z crates.io (dostępne w CI, nie w sandboxie dev).
+exclude = ["examples/spike/pyo3"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/peteraangelic-pixel/C_Rust"
+
+[profile.release]
+lto = true
+codegen-units = 1

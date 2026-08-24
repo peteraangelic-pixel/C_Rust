@@ -1,0 +1,6 @@
+[package]
+name = "hotport-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Model manifestu i kontraktow rownowaznosci (PLAN.md §4.1)"
