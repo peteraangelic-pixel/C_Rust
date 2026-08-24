@@ -37,9 +37,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: spike-so
-          path: |
-            target/release/libhotport_spike_core.so
-            target/release/libhotport_spike.so
+          # UWAGA: JEDNA ścieżka => artefakt płaski. upload-artifact v4 liczy
+          # wspólny przodek z podanych ŚCIEŻEK (nie z dopasowanych plików!),
+          # więc mieszanie prefiksów zagnieżdża pliki w artefakcie.
+          path: target/release/libhotport_spike_core.so
 
   python:
     name: Python (differential + bench + gate)

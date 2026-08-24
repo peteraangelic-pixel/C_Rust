@@ -19,7 +19,12 @@ pub struct FloatPolicy {
 impl Default for FloatPolicy {
     fn default() -> Self {
         // Domyślnie: ŚCISŁE porównanie bitowe; tolerancje włącza się per funkcja.
-        Self { rel_tol: 0.0, abs_tol: 0.0, max_ulp: 0, signed_zero_equal: true }
+        Self {
+            rel_tol: 0.0,
+            abs_tol: 0.0,
+            max_ulp: 0,
+            signed_zero_equal: true,
+        }
     }
 }
 
@@ -41,8 +46,16 @@ pub enum Value {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Diff {
     Equal,
-    FloatWithinTolerance { left: f64, right: f64, ulp: u64 },
-    NotEqual { path: String, left: Value, right: Value },
+    FloatWithinTolerance {
+        left: f64,
+        right: f64,
+        ulp: u64,
+    },
+    NotEqual {
+        path: String,
+        left: Value,
+        right: Value,
+    },
 }
 
 fn ulp_diff(a: f64, b: f64) -> u64 {
@@ -50,8 +63,16 @@ fn ulp_diff(a: f64, b: f64) -> u64 {
     // różnica ULP jest wtedy zwykłą różnicą całkowitoliczbową.
     let la = a.to_bits() as i64;
     let lb = b.to_bits() as i64;
-    let la = if la < 0 { 0x8000_0000_0000_0000u64.wrapping_sub(la as u64) as i64 } else { la };
-    let lb = if lb < 0 { 0x8000_0000_0000_0000u64.wrapping_sub(lb as u64) as i64 } else { lb };
+    let la = if la < 0 {
+        0x8000_0000_0000_0000u64.wrapping_sub(la as u64) as i64
+    } else {
+        la
+    };
+    let lb = if lb < 0 {
+        0x8000_0000_0000_0000u64.wrapping_sub(lb as u64) as i64
+    } else {
+        lb
+    };
     (la - lb).unsigned_abs()
 }
 
@@ -75,18 +96,30 @@ fn eq_float(a: f64, b: f64, p: &FloatPolicy) -> Option<Diff> {
         || (a - b).abs() <= p.rel_tol * a.abs().max(b.abs())
         || ulp <= p.max_ulp;
     if close {
-        Some(Diff::FloatWithinTolerance { left: a, right: b, ulp })
+        Some(Diff::FloatWithinTolerance {
+            left: a,
+            right: b,
+            ulp,
+        })
     } else {
         None
     }
 }
 
 fn push_path(prefix: &str, key: &str) -> String {
-    if prefix.is_empty() { key.to_string() } else { format!("{prefix}.{key}") }
+    if prefix.is_empty() {
+        key.to_string()
+    } else {
+        format!("{prefix}.{key}")
+    }
 }
 
 fn mismatch(a: &Value, b: &Value, path: &str) -> Diff {
-    Diff::NotEqual { path: path.to_string(), left: a.clone(), right: b.clone() }
+    Diff::NotEqual {
+        path: path.to_string(),
+        left: a.clone(),
+        right: b.clone(),
+    }
 }
 
 fn eq_value(a: &Value, b: &Value, p: &FloatPolicy, path: &str) -> Diff {
@@ -163,8 +196,14 @@ mod tests {
     fn skalary() {
         let p = FloatPolicy::default();
         assert_eq!(deep_eq(&Value::Int(5), &Value::Int(5), &p), Diff::Equal);
-        assert_eq!(deep_eq(&Value::Str("a".into()), &Value::Str("a".into()), &p), Diff::Equal);
-        assert!(matches!(deep_eq(&Value::Int(5), &Value::Int(6), &p), Diff::NotEqual { .. }));
+        assert_eq!(
+            deep_eq(&Value::Str("a".into()), &Value::Str("a".into()), &p),
+            Diff::Equal
+        );
+        assert!(matches!(
+            deep_eq(&Value::Int(5), &Value::Int(6), &p),
+            Diff::NotEqual { .. }
+        ));
     }
 
     #[test]
@@ -175,18 +214,31 @@ mod tests {
             deep_eq(&Value::Float(0.1 + 0.2), &Value::Float(0.3), &p),
             Diff::NotEqual { .. }
         ));
-        let toler = FloatPolicy { rel_tol: 1e-9, max_ulp: 2, ..Default::default() };
+        let toler = FloatPolicy {
+            rel_tol: 1e-9,
+            max_ulp: 2,
+            ..Default::default()
+        };
         assert!(matches!(
             deep_eq(&Value::Float(0.1 + 0.2), &Value::Float(0.3), &toler),
             Diff::FloatWithinTolerance { .. }
         ));
-        assert_eq!(deep_eq(&Value::Float(f64::NAN), &Value::Float(f64::NAN), &p), Diff::Equal);
+        assert_eq!(
+            deep_eq(&Value::Float(f64::NAN), &Value::Float(f64::NAN), &p),
+            Diff::Equal
+        );
         assert!(matches!(
             deep_eq(&Value::Float(f64::NAN), &Value::Float(1.0), &p),
             Diff::NotEqual { .. }
         ));
-        assert_eq!(deep_eq(&Value::Float(-0.0), &Value::Float(0.0), &p), Diff::Equal);
-        let zero_strict = FloatPolicy { signed_zero_equal: false, ..Default::default() };
+        assert_eq!(
+            deep_eq(&Value::Float(-0.0), &Value::Float(0.0), &p),
+            Diff::Equal
+        );
+        let zero_strict = FloatPolicy {
+            signed_zero_equal: false,
+            ..Default::default()
+        };
         assert!(matches!(
             deep_eq(&Value::Float(-0.0), &Value::Float(0.0), &zero_strict),
             Diff::NotEqual { .. }

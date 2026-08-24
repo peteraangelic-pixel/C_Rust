@@ -19,7 +19,11 @@ pub mod ffi;
 /// empirycznie `slug("abc\n")` zwraca True, `slug("abc\n\n")` False.
 /// Więc: obetnij maksymalnie jeden końcowy '\n' i sprawdź resztę.
 pub fn slug_core(s: &str) -> bool {
-    let body = if s.ends_with('\n') { &s[..s.len() - 1] } else { s };
+    let body = if s.ends_with('\n') {
+        &s[..s.len() - 1]
+    } else {
+        s
+    };
     if body.is_empty() {
         return false; // python: falsy -> False (albo samo '\n' bez ciała)
     }
@@ -59,7 +63,9 @@ pub fn uuid_core(s: &str) -> Option<bool> {
     }
     let owned = s.replace("urn:", "").replace("uuid:", "");
     // strip "{" i "}" z obu końców (dowolna liczba)
-    let t: String = owned.trim_matches(|c| c == '{' || c == '}').replace('-', "");
+    let t: String = owned
+        .trim_matches(|c| c == '{' || c == '}')
+        .replace('-', "");
     // krok 4: dokładnie 32 znaki (licząc `+`, `_` i białe znaki!)
     if t.len() != 32 {
         return Some(false);
@@ -138,7 +144,11 @@ fn parse_netmask(s: &str) -> Option<u8> {
         let m = parse_dotted(s)?;
         // ciągła maska: istnieje p, że m == !(0xFFFFFFFF >> p) ... sprawdźmy wszystkie p
         for p in 0u8..=32 {
-            let mask: u32 = if p == 0 { 0 } else { (!0u32) << (32 - p as u32) };
+            let mask: u32 = if p == 0 {
+                0
+            } else {
+                (!0u32) << (32 - p as u32)
+            };
             if m == mask {
                 return Some(p);
             }
@@ -186,7 +196,11 @@ pub fn ipv4_core(s: &str, cidr: bool, strict: bool, host_bit: bool) -> Option<bo
         Some(v) => v,
         None => return Some(false), // AddressValueError → False
     };
-    let host_mask: u32 = if plen == 0 { !0u32 } else { (1u32 << (32 - plen as u32)) - 1 };
+    let host_mask: u32 = if plen == 0 {
+        !0u32
+    } else {
+        (1u32 << (32 - plen as u32)) - 1
+    };
     if !host_bit && (addr & host_mask) != 0 {
         return Some(false); // IPv4Network(strict=True): bity hosta muszą być zerem
     }
@@ -199,11 +213,24 @@ mod tests {
 
     #[test]
     fn slug_l1() {
-        for ok in ["123-asd-7sda", "123-k-123", "dac-12sa-459", "dac-12sa7-ad31as", "a"] {
+        for ok in [
+            "123-asd-7sda",
+            "123-k-123",
+            "dac-12sa-459",
+            "dac-12sa7-ad31as",
+            "a",
+        ] {
             assert!(slug_core(ok), "powinno byc valid: {ok}");
         }
         for bad in [
-            "some.slug&", "1231321%", "   21312", "-47q-p--123", "", "A-b", "a--b", "abc-",
+            "some.slug&",
+            "1231321%",
+            "   21312",
+            "-47q-p--123",
+            "",
+            "A-b",
+            "a--b",
+            "abc-",
             "ń-abc",
         ] {
             assert!(!slug_core(bad), "powinno byc invalid: {bad}");

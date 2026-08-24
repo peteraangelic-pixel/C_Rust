@@ -9,14 +9,23 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq)]
 pub enum TypeShape {
     Bool,
-    Int { bits: u8, checked_overflow: bool }, // K3: bignum vs i64/i128
-    Float { policy_id: Option<String> },     // K2: polityka tolerancji
+    Int {
+        bits: u8,
+        checked_overflow: bool,
+    }, // K3: bignum vs i64/i128
+    Float {
+        policy_id: Option<String>,
+    }, // K2: polityka tolerancji
     Str,
     Bytes,
     None,
     List(Box<TypeShape>),
     Tuple(Vec<TypeShape>),
-    Dict { key: Box<TypeShape>, value: Box<TypeShape>, order_sensitive: bool }, // K8
+    Dict {
+        key: Box<TypeShape>,
+        value: Box<TypeShape>,
+        order_sensitive: bool,
+    }, // K8
     Optional(Box<TypeShape>),
     Union(Vec<TypeShape>),
     Unknown, // brak obserwacji → poza kontraktem (Z5)
@@ -142,9 +151,15 @@ mod tests {
             notes: vec![],
         };
         assert_eq!(gate(&ok, 1.5), GateStatus::Promoted);
-        let bez_dowodu = GateResult { l2_pass: Some(false), ..ok.clone() };
+        let bez_dowodu = GateResult {
+            l2_pass: Some(false),
+            ..ok.clone()
+        };
         assert_eq!(gate(&bez_dowodu, 1.5), GateStatus::NeedsHuman);
-        let za_wolny = GateResult { speedup: Some(1.2), ..ok };
+        let za_wolny = GateResult {
+            speedup: Some(1.2),
+            ..ok
+        };
         assert_eq!(gate(&za_wolny, 1.5), GateStatus::NeedsHuman);
     }
 }

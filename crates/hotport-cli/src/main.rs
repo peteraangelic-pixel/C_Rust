@@ -21,7 +21,9 @@ pub fn parse_args(args: &[String]) -> Result<Command, String> {
             .ok_or("profile: podaj cel (moduł/ścieżkę)".into()),
         Some("translate") => args
             .get(1)
-            .map(|m| Command::Translate { manifest: m.clone() })
+            .map(|m| Command::Translate {
+                manifest: m.clone(),
+            })
             .ok_or("translate: podaj manifest".into()),
         Some("verify") => Ok(Command::Verify {
             manifest: args.get(1).cloned().unwrap_or_default(),
@@ -29,7 +31,9 @@ pub fn parse_args(args: &[String]) -> Result<Command, String> {
         }),
         Some("bench") => args
             .get(1)
-            .map(|m| Command::Bench { manifest: m.clone() })
+            .map(|m| Command::Bench {
+                manifest: m.clone(),
+            })
             .ok_or("bench: podaj manifest".into()),
         Some("report") => args
             .get(1)
@@ -50,10 +54,14 @@ fn main() -> ExitCode {
                     println!("profile: cel={target} —(TODO faza 1) tracer + manifest.json");
                 }
                 Command::Translate { manifest } => {
-                    println!("translate: manifest={manifest} —(TODO faza 2) rdzeń deterministyczny");
+                    println!(
+                        "translate: manifest={manifest} —(TODO faza 2) rdzeń deterministyczny"
+                    );
                 }
                 Command::Verify { manifest, gate } => {
-                    println!("verify: manifest={manifest} gate={gate} —(TODO faza 1) L1/L2 + exit-code");
+                    println!(
+                        "verify: manifest={manifest} gate={gate} —(TODO faza 1) L1/L2 + exit-code"
+                    );
                 }
                 Command::Bench { manifest } => {
                     println!("bench: manifest={manifest} —(TODO faza 3) criterion-style przed/po");
@@ -86,11 +94,16 @@ mod tests {
     fn parsowanie_komend() {
         assert_eq!(
             parse_args(&args(&["profile", "validators"])).unwrap(),
-            Command::Profile { target: "validators".into() }
+            Command::Profile {
+                target: "validators".into()
+            }
         );
         assert_eq!(
             parse_args(&args(&["verify", "m.json", "--gate"])).unwrap(),
-            Command::Verify { manifest: "m.json".into(), gate: true }
+            Command::Verify {
+                manifest: "m.json".into(),
+                gate: true
+            }
         );
         assert!(parse_args(&args(&["profile"])).is_err());
         assert!(parse_args(&args(&["nieznane"])).is_err());

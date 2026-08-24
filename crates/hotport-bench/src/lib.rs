@@ -89,7 +89,11 @@ pub fn render_report(rows: &[BenchRow]) -> String {
                     name,
                     s.median_ns_per_op,
                     s.p95_ns_per_op,
-                    if name == "python" { speedup.as_str() } else { "" }
+                    if name == "python" {
+                        speedup.as_str()
+                    } else {
+                        ""
+                    }
                 ));
             }
         }
@@ -106,7 +110,10 @@ pub fn measure<F: FnMut()>(ops_per_batch: u64, batches: u64, mut f: F) -> Vec<Sa
             f();
         }
         let dt = t0.elapsed();
-        out.push(Sample { nanos: dt.as_nanos(), ops: ops_per_batch });
+        out.push(Sample {
+            nanos: dt.as_nanos(),
+            ops: ops_per_batch,
+        });
     }
     out
 }

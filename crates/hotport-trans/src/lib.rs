@@ -141,7 +141,10 @@ impl Translator for RuleTranslator {
 
 fn rust_arg_name(name: &str) -> String {
     // 'value' ok; słowa zarezerwowane → sufiks
-    if matches!(name, "type" | "ref" | "fn" | "match" | "box" | "move" | "loop") {
+    if matches!(
+        name,
+        "type" | "ref" | "fn" | "match" | "box" | "move" | "loop"
+    ) {
         format!("{name}_")
     } else {
         name.to_string()
