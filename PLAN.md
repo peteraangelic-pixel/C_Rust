@@ -21,7 +21,7 @@
 
 | # | Zasada | Skutek praktyczny |
 |---|--------|-------------------|
-| Z1 | **API 1:1, zawsze** | te same nazwy, kwargs, wartości domyślne, typy rzucanych wyjątków; testy klienta przechodzą bez zmian |
+| Z1 | **API 1:1 dla wspieranego podzbioru semantyki** [REVIEW] | te same nazwy, kwargs, defaulty, typy wyjątków — w granicach kontraktu (Z5); poza podzbiorem → routing do oryginału, nigdy cicha różnica |
 | Z2 | **Weryfikacja jest produktem** | każdy wygenerowany moduł ma raport z dowodem równoważności; bez dowodu → nie promujemy |
 | Z3 | **Deterministyczny rdzeń, LLM jako generator hipotez** | struktura z AST + reguł; LLM tylko idiomatyzacja; wynik zawsze przez bramkę weryfikacji |
 | Z4 | **Inkrementalnie, funkcja po funkcji** | przełącznik implementacji (python/rust/both) w runtime; migracja bez big-bang rewrite |
@@ -142,6 +142,14 @@ promuj funkcję do „rust"  ⇔  L1 100% PASS  ∧  L2 100% PASS (min. N=500 pr
 każda różnica → status DIFF → człowiek decyduje (Z5: nigdy auto-promocja z różnicą)
 ```
 
+**Skala werdyktu wydajnościowego [REVIEW]** (promocja ≠ pochwała):
+`<1.2× NOT-WORTH` (nie opłaca się) · `1.2–2× LOW-VALUE` (poprawne, ale nie
+promujemy jako „performance win") · `2–3× GOOD` · `>3× EXCELLENT` · `>10×
+SHOWCASE`. Raport MUSI też zawierać sekcję **„why not Rust?"** dla odrzuconych
+funkcji: powód (dynamiczny typ wyniku / możliwy bigint / niemodelowane wyjątki /
+speedup ×1.07) — „odrzuciliśmy i wiemy dlaczego" buduje zaufanie bardziej niż
+sama promocja.
+
 Wynik bramki jest **artefaktem** (`report.md` + JSON) — commitowalny, diffowalny w CI, z exit-code (0/1) do GitHub Actions.
 
 ### 4.4 Pułapki semantyczne — rejestrujemy od dnia 1 (checklista do code review)
@@ -162,7 +170,7 @@ Wynik bramki jest **artefaktem** (`report.md` + JSON) — commitowalny, diffowal
 |---|---|---|
 | Rdzeń + CLI | Rust, `clap`, `serde`, `toml`, `anyhow`/`thiserror`, `tracing` | standard, stabilne |
 | Parsowanie Pythona | tree-sitter-python **lub** rustpython-parser | decyzja ADR-0002 (quick spike; tree-sitter = szybkość, rustpython = pełniejsze AST) |
-| Bindingi | `pyo3` + `maturin`, wheels `abi3` (3.9+) | jeden wheel dla wszystkich wersji |
+| Bindingi | `pyo3` + `maturin`, wheels `abi3` (3.9+) | jeden build ABI **na daną platformę/architekturę** dla wielu wersji CPythona (macierz wheeli per-OS/arch pozostaje) [REVIEW] |
 | Tracer | czysty Python (sys.setprofile + wrapper harvest) | zero zależności u klienta poza tymczasowym pakietem |
 | Property-based | własne generatory w Rust (strategie z kontraktów) + opcja `hypothesis` w trybie python | determinizm i szybkość |
 | Benchmark | `criterion` + `tracemalloc`-odpowiednik | raport przed/po |
@@ -245,6 +253,13 @@ Założenie: 1 osoba, ~10–15 h/tydzień. Przy większym budżecie czasu fazy s
 | R7 | Konkurencja (py2many, depyler) ruszy w to samo | średnie | nasza przewaga = weryfikacja+raport+canary (oni tego nie mają); tempo: faza 4 ≤ 11 tyg. |
 
 ---
+
+## 7.5 Poziomy wsparcia konstrukcji [REVIEW]
+
+Tier 1 (wspierane): funkcje czyste, typy proste, arytmetyka checked, stringi ASCII ·
+Tier 2 (częściowo): `re`/`json`/`datetime`/Unicode (tabele jako dane + routing) ·
+Tier 3 (poza zakresem): klasy z dziedziczeniem, async, generatory, obiekty dynamiczne, numpy.
+Raport per funkcja: `SUPPORTED / PARTIAL / NOT-SAFELY-TRANSLATABLE (+powód)` — nigdy binary „obsługujemy Pythona".
 
 ## 8. Metryki sukcesu (KPI)
 

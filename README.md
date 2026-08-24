@@ -3,7 +3,10 @@
 > Status: **Faza 0 ukończona** (spike walidacyjny — patrz [REPORT.md](REPORT.md)) ·
 > Plan produktu: [PLAN.md](PLAN.md) · Decyzje: [docs/decisions/](docs/decisions/)
 
-**Idea:** klient wskazuje gorące funkcje swojej biblioteki Python → dostaje ich
+**Idea [REVIEW-pkt15]:** hotport to **bezpieczny optymalizator hot paths Pythona**
+(profiluj → kontrakt → Rust → differential → kanarek → raport); translator jest
+jednym z wymiennych backendów, nie sercem produktu. Klient wskazuje gorące
+funkcje/regiony → dostaje ich
 implementacje w Rust jako drop-in zamiennik (API 1:1) → równoważność zachowania
 jest **udowodniona** differentialowo (replay + generacja + fuzzing), a raport
 przed/po (czas, pamięć) jest dowodem wartości. Rust jest środkiem, nie celem.
