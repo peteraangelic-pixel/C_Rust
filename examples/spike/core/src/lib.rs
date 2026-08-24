@@ -249,7 +249,10 @@ mod tests {
         assert_eq!(d("1.1.1.1/255.255.255.0"), Some(true));
         assert_eq!(d("1.1.1.1/0.0.0.0"), Some(true));
         assert_eq!(d("1.1.1.1/024"), Some(true)); // wiodące zero w PREFIKSIE jest ok
-        assert_eq!(d("1.1.1.1/00"), Some(false)); // ...ale "00" != liczba (0 to 1 znak)
+        assert_eq!(d("1.1.1.1/00"), Some(true)); // "00" → int=0 — też OK! (pierwszy przebieg CI
+        // złapał tu błędne oczekiwanie Some(false): w probe'u strict=True zawiniły bity
+        // hosta, nie maska — lekcja: oczekiwanie testu wyprowadzaj z probe'u o DOKŁADNIE
+        // tych parametrach, których używa testowany kod)
         assert_eq!(d("0127.0.0.1"), Some(false)); // ...a w oktecie adresu nie
         assert_eq!(d("1.1.1.01"), Some(false));
         assert_eq!(d("900.200.100.75"), Some(false));

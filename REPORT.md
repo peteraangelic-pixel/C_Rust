@@ -149,6 +149,15 @@ code_ok, safe_mul), differential **654 przypadki / 0 rozbieżności**, w tym:
 3. **`.startswith` nie istnieje w Rust** (`starts_with`) — mapowanie nazw metod.
 4. Wcięcie guardów i64 w generowanym cieniu (SyntaxError przy exec).
 
+**Pierwszy przebieg CI (pierwsza kompilacja!) złapał kolejne 4:**
+trzy błędy kompilacji (domknięcie przenoszone przed użyciem w hotport-verify;
+`&String` vs `&str` w format! w hotport-bench; prywatny konstruktor `Utf8Error`
+w ffi.rs) oraz **błędne oczekiwanie w złotej regule ipv4**: `1.1.1.1/00` JEST
+poprawne (`int('00')=0`) — rdzeń Rust zwrócił słusznie `Some(true)`, a mój test
+wymagał `Some(false)`, bo odczytałem probe z `strict=True` (tam zawiniły bity
+hosta, nie maska). Lekcja-żelazo: oczekiwanie testu wyprowadzamy wyłącznie z
+probe'u o dokładnie tych parametrach, których używa kod.
+
 **Reguły semantyczne v0 (zapisane w kodzie i testach):**
 * mixed int/float porównania: DOZWOLONE tylko dla literału int ≤2^53 (dokładnie
   reprezentowalny w f64; python porównuje wartościowo — koercja zmiennych
