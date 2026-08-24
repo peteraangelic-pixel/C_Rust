@@ -38,7 +38,7 @@ jobs:
           name: spike-so
           path: |
             target/release/libhotport_spike_core.so
-            examples/spike/pyo3/target/release/libhotport_spike.so
+            
 
   python:
     name: Python (differential + bench + gate)
