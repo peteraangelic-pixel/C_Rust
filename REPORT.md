@@ -254,6 +254,18 @@ Odpowiedź kodem na rekomendację „portuj hot REGION, nie hot function"
 * Uczciwe zastrzeżenie: rig jest trywialny (logika float) — możliwy werdykt
   NOT-WORTH nawet dla 1×FFI, i to też jest wartościowa informacja.
 
+## Kamień milowy 2: klastry zielone w CI (2026-08-25, run a37055d)
+
+Pełny sukces po fixie #8 (wnętrza klastra `pub(crate)` — E0603 wykryte przez
+adnotacje publicznego API bez czytania logów). Wszystkie kroki zielone, w tym:
+differential klastra na prawdziwym `.so` (koniec skipów), bramka, bench
+3-wariantowy. Liczby klastra (python vs 2×FFI vs 1×FFI): patrz
+`examples/spike/report/bench.md` z bot-commita / artefakt.
+
+Przy okazji: infrastruktura odczytu wyników — runy/kroki/adnotacje czytane
+z publicznego API; logi/artefakty (blob Azure) nadal poza allowlistą proxy
+sandboxa → stąd bot-commit raportów do repo (docs/ci-workflow.yml).
+
 ## Co dalej (Faza 2 — pozostało)
 
 - [ ] Pierwszy przebieg CI: kompilacja+testy Rusta, artefakt `.so`, differential

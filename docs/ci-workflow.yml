@@ -78,3 +78,16 @@ jobs:
         with:
           name: spike-reports
           path: examples/spike/report/
+
+      # Bot-commit raportów do brancha: sandbox sesyjny nie ściąga artefaktów
+      # (blob Azure poza allowlistą proxy), a tak wyniki są czytelne przez API.
+      # [skip ci] w message zapobiega pętli przebiegów.
+      - name: Raporty do repo (bot-commit, [skip ci])
+        if: always()
+        run: |
+          git config user.name "hotport-bot"
+          git config user.email "actions@github.com"
+          git add examples/spike/report/*.md || true
+          git diff --cached --quiet && echo "brak zmian raportów" && exit 0
+          git commit -m "ci: raporty runa #${{ github.run_id }} [skip ci]"
+          git push
