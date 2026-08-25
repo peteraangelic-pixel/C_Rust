@@ -6,18 +6,18 @@ pub fn admission(points: f64, lo: f64, hi: f64) -> Option<bool> {
 }
 
 /// WYGENEROWANE AUTOMATYCZNIE przez hotport_trans v0 — NIE EDYTOWAĆ
-fn in_band(value: f64, lo: f64, hi: f64) -> Option<bool> {
+pub(crate) fn in_band(value: f64, lo: f64, hi: f64) -> Option<bool> {
     return Some(((lo) <= (value)) && ((value) <= (hi)));
 }
 
 /// WYGENEROWANE AUTOMATYCZNIE przez hotport_trans v0 — NIE EDYTOWAĆ
-fn is_score_valid(points: f64) -> Option<bool> {
+pub(crate) fn is_score_valid(points: f64) -> Option<bool> {
     let band: i64 = grade((points))?;
     return Some(((band) >= (3)) && ((band) <= (5)));
 }
 
 /// WYGENEROWANE AUTOMATYCZNIE przez hotport_trans v0 — NIE EDYTOWAĆ
-fn grade(points: f64) -> Option<i64> {
+pub(crate) fn grade(points: f64) -> Option<i64> {
     if (points) >= (90.0) {
         return Some(5);
     } else if (points) >= (75.0) {

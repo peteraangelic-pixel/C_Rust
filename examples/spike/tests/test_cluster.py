@@ -63,7 +63,8 @@ def test_struktura_klastra(translation):
     assert set(translation["members"]) == _MEMBERS
     rust = translation["rust"]
     assert "pub fn admission" in rust
-    assert "\nfn in_band" in rust and "pub fn in_band" not in rust  # wnętrza prywatne
+    assert "pub(crate) fn in_band" in rust  # wnętrza: crate-widoczne (ffi), nie publiczne
+    assert "pub fn in_band" not in rust
     assert "?;" in rust  # wywołania wewnętrzne rozpakowują Option (jak cień przez _call)
 
 

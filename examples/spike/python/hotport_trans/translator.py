@@ -473,7 +473,9 @@ def translate_cluster(source, entry, filename="<cluster>"):
     for t in translations:
         r = t["rust"]
         if t["name"] != entry:
-            r = r.replace("pub fn", "fn", 1)  # wnętrza prywatne — tylko entry przez FFI
+            # pub(crate): niewidoczne z zewnątrz crate'a, ale dostępne dla
+            # naszego ffi.rs (bug #8 z CI: czysto prywatne `fn` → E0603)
+            r = r.replace("pub fn", "pub(crate) fn", 1)
         rust_parts.append(r)
     return {
         "entry": entry,
