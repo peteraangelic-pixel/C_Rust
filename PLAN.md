@@ -217,6 +217,9 @@ Założenie: 1 osoba, ~10–15 h/tydzień. Przy większym budżecie czasu fazy s
       1743 PASS, **benchmark DoD spełniony: 4,52×/6,77×/8,46× przez ctypes**
       (uuid jako jedyny gorszy od pythonowej specyfikacji — podatek FFI+alokacje;
       potwierdzenie strategii klastrów + PyO3).
+- [x] **Klastry v0.2** [REVIEW pkt 8-9]: tracer call-graph (manifest 0.2.0) +
+      `translate_cluster` (entry pub, wnętrza prywatne, jedno FFI na region) +
+      automatyczne odkrywanie klastrów ze śladu + bench 3-wariantowy.
 - [ ] Podpięcie generated/*.rs do kompilacji w CI + repair loop rustc;
       przeniesienie reguł v0 do crate hotport-trans; upgrade pyo3 (0.23.5 → 0.29).
 - [x] L2 property-based z seedami — rozszerzone o cele translatora (granice i64,

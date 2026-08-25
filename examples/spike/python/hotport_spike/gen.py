@@ -223,3 +223,24 @@ def demo_cases(seed=99, per_fn=120):
         add("in_band", f, -1000.0, 1000.0)
         add("grade", f)
     return out
+
+
+def cluster_cases(seed=123, per_fn=150):
+    """Przypadki dla KLASTRA admission (v0.2): entry + argumenty 3x float."""
+    rng = random.Random(seed)
+    out = [
+        {"fn": "admission", "args": [80.0, 0.0, 100.0], "kwargs": {}, "origin": "l1"},
+        {"fn": "admission", "args": [50.0, 0.0, 100.0], "kwargs": {}, "origin": "l1"},
+        {"fn": "admission", "args": [75.0, 0.0, 100.0], "kwargs": {}, "origin": "l1"},
+    ]
+
+    def add(p, lo, hi):
+        out.append({"fn": "admission", "args": [p, lo, hi], "kwargs": {},
+                    "origin": "l2-cluster"})
+
+    for _ in range(per_fn):
+        add(rng.uniform(-10, 110), rng.uniform(-10, 110), rng.uniform(-10, 110))
+    for f in [0.0, 59.99, 60.0, 74.99, 75.0, 89.99, 90.0, 100.0,
+              float("nan"), float("inf"), float("-inf")]:
+        add(f, 0.0, 100.0)
+    return out

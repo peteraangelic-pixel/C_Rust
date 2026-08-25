@@ -75,7 +75,7 @@ def decode_value(v):
 class _FnStats:
     __slots__ = ("calls", "self_ns", "durations", "arg_shapes", "ret_shapes",
                  "raises", "mutated", "samples", "seen_samples",
-                 "truthy", "ascii_strs", "total_strs")
+                 "truthy", "ascii_strs", "total_strs", "callers")
 
     def __init__(self):
         self.calls = 0
@@ -90,6 +90,7 @@ class _FnStats:
         self.truthy = 0        # wyniki prawdziwościowo (dla predykatów)
         self.ascii_strs = 0
         self.total_strs = 0
+        self.callers = {}      # caller -> licznik (call-graph, manifest 0.2.0)
 
 
 def _record_arg(st, slot, v):
@@ -115,6 +116,7 @@ class Tracer:
         self.max_samples_total = max_samples_total
         self._stats = {}       # (module, qualname) -> _FnStats
         self._wrapped = []     # [(module, name, original), ...]
+        self._stack = []       # stos wywołań do call-graph (jednowątkowo w v0.2)
 
     def wrap_module(self, module, names=None):
         if names is None:
@@ -142,6 +144,10 @@ class Tracer:
             def wrapper(*args, __key=key, __orig=original, __params=params, **kwargs):
                 st = self._stats[__key]
                 st.calls += 1
+                # krawędź call-graph [REVIEW pkt 9]: kto mnie woła?
+                caller = self._stack[-1][1] if self._stack else "<root>"
+                st.callers[caller] = st.callers.get(caller, 0) + 1
+                self._stack.append(__key)
                 # kształty + snapshoty do detekcji mutacji
                 watched = []  # [(referencja, przed)]
                 for i, a in enumerate(args):
@@ -179,6 +185,7 @@ class Tracer:
                         st.raises.append(type(e).__name__)
                     raise
                 finally:
+                    self._stack.pop()
                     dt = time.perf_counter_ns() - t0
                     st.self_ns += dt
                     if len(st.durations) < 10_000:

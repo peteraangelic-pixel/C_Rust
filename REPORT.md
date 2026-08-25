@@ -234,6 +234,26 @@ przez granicę na łańcuch wywołań, nie na liść), bo wtedy podatek FFI znik
 ze statystyki per-wywołanie. DoD fazy 2 (benchmark ≥×2 na min. 3 funkcjach):
 **spełnione 4,52×/6,77×/8,46×**.
 
+## Faza 2.1 — KLASTRY [REVIEW pkt 8-9] (2026-08-25)
+
+Odpowiedź kodem na rekomendację „portuj hot REGION, nie hot function"
+(umotywowana benchem: uuid przez ctypes przegrał z pythonową specyfikacją).
+
+* **tracer**: call-graph (`callers` w manifeście — **schema 0.2.0**, pole
+  opcjonalne = minor) + `clusters_from_manifest()` — automatyczne odkrywanie
+  klastrów ze śladu (entry = funkcja wołana tylko z zewnątrz).
+* **translator v0.2**: `translate_cluster(source, entry)` — wywołania
+  międzyfunkcyjne w podzbiorze v0; entry jako `pub fn`, wnętrza prywatne
+  (wywołania wewnętrzne w Rust darmowe, **FFI płaci się raz**); `?` na
+  wywołaniach lustrzane z `_call` w cieniu. CLI: `--entry <nazwa>`.
+* **rig**: `demo_cluster.py` (admission → in_band/is_score_valid → grade),
+  wykryty automatycznie ze śladu (4 członków). Golden: cluster_admission.rs +
+  cross-check z core/src/cluster.rs.
+* **bench 3-wariantowy**: python-łańcuch · rust-LIŚCIE (2×FFI — patologia)
+  · rust-KLASTER (1×FFI) — liczby z CI.
+* Uczciwe zastrzeżenie: rig jest trywialny (logika float) — możliwy werdykt
+  NOT-WORTH nawet dla 1×FFI, i to też jest wartościowa informacja.
+
 ## Co dalej (Faza 2 — pozostało)
 
 - [ ] Pierwszy przebieg CI: kompilacja+testy Rusta, artefakt `.so`, differential

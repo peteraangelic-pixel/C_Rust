@@ -10,7 +10,14 @@ from .translator import (
     SHADOW_PRELUDE,
     UnsupportedNode,
     shadow_module_source,
+    translate_cluster,
     translate_module,
 )
 
-__all__ = ["translate_module", "shadow_module_source", "UnsupportedNode", "SHADOW_PRELUDE"]
+__all__ = [
+    "translate_module",
+    "translate_cluster",
+    "shadow_module_source",
+    "UnsupportedNode",
+    "SHADOW_PRELUDE",
+]

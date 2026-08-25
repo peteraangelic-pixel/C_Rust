@@ -12,17 +12,34 @@ def main(argv=None):
     here = os.path.dirname(os.path.abspath(__file__))
     ap = argparse.ArgumentParser(prog="hotport_trans")
     ap.add_argument("target", help="plik .py z funkcjami w podzbiorze v0")
+    ap.add_argument("--entry", default=None,
+                    help="tryb KLASTRA (v0.2): przetłumacz region call-graph od tej funkcji")
     ap.add_argument("--out", default=os.path.normpath(os.path.join(here, "..", "..", "generated")),
                     help="katalog wyjściowy (domyślnie examples/spike/generated)")
     args = ap.parse_args(argv)
 
-    from hotport_trans import shadow_module_source, translate_module
+    from hotport_trans import shadow_module_source, translate_cluster, translate_module
 
     with open(args.target, encoding="utf-8") as f:
         source = f.read()
 
-    result = translate_module(source, filename=args.target)
     os.makedirs(args.out, exist_ok=True)
+
+    if args.entry:
+        cl = translate_cluster(source, args.entry, filename=args.target)
+        p = os.path.join(args.out, f"cluster_{cl['entry']}.rs")
+        with open(p, "w", encoding="utf-8") as f:
+            f.write(cl["rust"])
+        shadow_path = os.path.join(args.out, f"shadow_cluster_{cl['entry']}.py")
+        with open(shadow_path, "w", encoding="utf-8") as f:
+            f.write(shadow_module_source([]) + cl["shadow"])
+        print(f"target: {args.target} (KLASTER, entry={cl['entry']})")
+        print(f"  czlonkowie: {', '.join(cl['members'])}")
+        print(f"  OK -> {p}")
+        print(f"  cien klastra: {shadow_path}")
+        return 0
+
+    result = translate_module(source, filename=args.target)
 
     written = []
     for t in result["functions"]:

@@ -26,6 +26,15 @@ def _bin(op, a, b):
     raise AssertionError(op)
 
 
+def _call(f, *args):
+    # wywołanie wewnętrzne (v0.2 klastry): None z wnętrza = _Out —
+    # lustrzane odbicie operatora `?` w generowanym rust
+    r = f(*args)
+    if r is None:
+        raise _Out()
+    return r
+
+
 
 def in_band(value, lo, hi):
     try:

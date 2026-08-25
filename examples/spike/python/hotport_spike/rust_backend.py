@@ -32,11 +32,17 @@ def _load():
         ("hotport_slug_is_valid", ctypes.c_int),
         ("hotport_uuid_is_valid", ctypes.c_int),
         ("hotport_ipv4_is_valid", ctypes.c_int),
+        ("hotport_cluster_admission", ctypes.c_int),
+        ("hotport_cluster_grade", ctypes.c_int),
+        ("hotport_cluster_in_band", ctypes.c_int),
     ]:
         getattr(lib, fn).restype = restype
     lib.hotport_slug_is_valid.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
     lib.hotport_uuid_is_valid.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
     lib.hotport_ipv4_is_valid.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_byte, ctypes.c_byte, ctypes.c_byte]
+    lib.hotport_cluster_admission.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_double]
+    lib.hotport_cluster_grade.argtypes = [ctypes.c_double, ctypes.POINTER(ctypes.c_longlong)]
+    lib.hotport_cluster_in_band.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_double]
     _lib = lib
 
 
@@ -99,3 +105,33 @@ def why_unavailable():
 NAME = "rust"
 
 CORES = {"slug": slug_core, "uuid": uuid_core, "ipv4": ipv4_core}
+
+
+# ------------------------------------------------- klastry (v0.2, [REVIEW 8-9])
+# JEDNO przejście FFI na cały region — wnętrza wołają się w Rust za darmo.
+
+def cluster_admission(points, lo, hi):
+    _load()
+    if _lib is None:
+        raise RuntimeError(_load_error)
+    r = _lib.hotport_cluster_admission(float(points), float(lo), float(hi))
+    return None if r == -1 else bool(r)
+
+
+def cluster_grade(points):
+    """Per-liść (do demonstracji patologii FFI w benchu): osobne przejście."""
+    _load()
+    if _lib is None:
+        raise RuntimeError(_load_error)
+    import ctypes as _ct
+    out = _ct.c_longlong(0)
+    r = _lib.hotport_cluster_grade(float(points), _ct.byref(out))
+    return None if r == -1 else int(out.value)
+
+
+def cluster_in_band(value, lo, hi):
+    _load()
+    if _lib is None:
+        raise RuntimeError(_load_error)
+    r = _lib.hotport_cluster_in_band(float(value), float(lo), float(hi))
+    return None if r == -1 else bool(r)

@@ -34,6 +34,52 @@ def _bench(fn, args_list, n):
     return statistics.median(times)
 
 
+def _bench_splat(fn, tuples, n):
+    """Wariant _bench dla funkcji wieloargumentowych: fn(*tuple)."""
+    batch = max(1, len(tuples))
+    times = []
+    for _ in range(7):
+        t0 = time.perf_counter()
+        for i in range(n):
+            fn(*tuples[i % batch])
+        times.append((time.perf_counter() - t0) / n * 1e9)
+    return statistics.median(times)
+
+
+def bench_cluster(n=30_000):
+    """[REVIEW pkt 8-9] Trzy warianty tego samego regionu:
+    python (caly lancuch w CPythonie) / rust-LISCIE (klej w pythonie, 2xFFI)
+    / rust-KLASTER (jedno FFI, wnetrza w rust)."""
+    targets_dir = os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "targets")
+    )
+    if targets_dir not in sys.path:
+        sys.path.insert(0, targets_dir)
+    import random
+
+    import demo_cluster as dc
+
+    rng = random.Random(11)
+    tuples = [(rng.uniform(-10, 110), rng.uniform(-10, 110), rng.uniform(-10, 110))
+              for _ in range(120)]
+
+    rows = [("python (lancuch)", _bench_splat(dc.admission, tuples, n))]
+
+    def leaves_glue(points, lo, hi):
+        # migracja per-lisc: FFI dla in_band i grade, reszta klejenia w pythonie
+        inr = rust_backend.cluster_in_band(points, lo, hi)  # przejscie 1
+        band = rust_backend.cluster_grade(points)  # przejscie 2
+        return bool(inr) and band is not None and 3 <= band <= 5
+
+    if rust_backend.available():
+        rows.append(("rust LISCIE (2xFFI)", _bench_splat(leaves_glue, tuples, n)))
+        rows.append(("rust KLASTER (1xFFI)", _bench_splat(rust_backend.cluster_admission, tuples, n)))
+    else:
+        rows.append(("rust LISCIE (2xFFI)", None))
+        rows.append(("rust KLASTER (1xFFI)", None))
+    return rows
+
+
 def workload(per_fn=400):
     """Mieszane workloady z generatora L2 (te same wejścia dla wszystkich)."""
     cases = [c for c in gen.generate(seed=7, per_fn=per_fn)
@@ -75,6 +121,19 @@ def main():
         "'rust' = te same funkcje przez ctypes (FII overhead ~0.3–1 µs/wywołanie —",
         "to właśnie ryzyko R2 z PLAN.md; docelowo PyO3 + tłumaczenie całych klastrów).",
     ]
+    # --- klaster [REVIEW pkt 8-9]: python vs liscie(2xFFI) vs klaster(1xFFI) ---
+    crows = bench_cluster()
+    lines.append("")
+    lines.append("## Klaster admission (median ns/op, n=%d)" % n)
+    lines.append("")
+    lines.append("| wariant | ns/op | vs python |")
+    lines.append("|---|---|---|")
+    py_ns = crows[0][1]
+    for name, v in crows:
+        if v is None:
+            lines.append("| %s | — (w CI z .so) | — |" % name)
+        else:
+            lines.append("| %s | %.0f | %.2fx |" % (name, v, py_ns / v if v else 0.0))
     report = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "report", "bench.md")
     os.makedirs(os.path.dirname(report), exist_ok=True)
     with open(report, "w", encoding="utf-8") as f:

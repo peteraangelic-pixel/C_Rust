@@ -57,11 +57,14 @@ def _returns_always(body):
 
 
 class _FnTranslator:
-    def __init__(self, fndef):
+    def __init__(self, fndef, known=None):
         self.fn = fndef.name
         self.fndef = fndef
         self.vars = {}  # nazwa -> typ ("i64"/"f64"/...)
         self.args = []  # [(name, ty)]
+        # v0.2 [REVIEW pkt 8-9]: znane funkcje modułu => dozwolone wywołania
+        # wewnętrzne (klastry). known: name -> ([typy arg], typ wyniku)
+        self.known = known or {}
         self.ret = _ann(fndef.returns, self.fn) if fndef.returns else None
         if self.ret is None:
             raise UnsupportedNode(self.fn, fndef, "brak adnotacji zwracanego typu (wymagana w v0)")
@@ -186,6 +189,24 @@ class _FnTranslator:
 
     def call(self, e):
         fn = self.fn
+        # v0.2: wywołania funkcji modułu (klastry) — jedno przejście FFI na cały
+        # łańcuch: rust woła wnętrza bezpośrednio (`?` rozpakowuje Option),
+        # cień przez _call (None z wnętrza = _Out, dokładnie jak `?` w rust).
+        if isinstance(e.func, ast.Name) and e.func.id in self.known:
+            argtys, retty = self.known[e.func.id]
+            if len(e.args) != len(argtys) or e.keywords:
+                raise UnsupportedNode(fn, e, f"wywołanie {e.func.id}: tylko pozycyjne, pełna arność")
+            pairs = [self.expr(a) for a in e.args]
+            for (_, _, got), want in zip(pairs, argtys):
+                if got != want:
+                    raise UnsupportedNode(fn, e, f"wywołanie {e.func.id}: typ {got} ≠ {want}")
+            rust_args = ", ".join(f"({rc})" for rc, _, _ in pairs)
+            py_args = ", ".join(f"({pc})" for _, pc, _ in pairs)
+            return (
+                f"{e.func.id}({rust_args})?",
+                f"_call({e.func.id}, {py_args})",
+                retty,
+            )
         # len(s)
         if isinstance(e.func, ast.Name) and e.func.id == "len" and len(e.args) == 1:
             v, vp, vt = self.expr(e.args[0])
@@ -376,6 +397,15 @@ def _bin(op, a, b):
         return _chk(a * b)
     raise AssertionError(op)
 
+
+def _call(f, *args):
+    # wywołanie wewnętrzne (v0.2 klastry): None z wnętrza = _Out —
+    # lustrzane odbicie operatora `?` w generowanym rust
+    r = f(*args)
+    if r is None:
+        raise _Out()
+    return r
+
 '''
 
 
@@ -398,3 +428,56 @@ def shadow_module_source(translations):
     for t in translations:
         parts.append("\n\n" + t["shadow"])
     return "".join(parts)
+
+
+def translate_cluster(source, entry, filename="<cluster>"):
+    """v0.2 [REVIEW pkt 8-9]: przetłumacz REGION call-graph jako jedną całość.
+
+    Domknięcie przejściowe wywołań z `entry` (tylko Name-calle do funkcji
+    modułu). Emituje: entry jako `pub fn`, wnętrza jako prywatne `fn` —
+    wywołania wewnętrzne w rust są darmowe, FFI płaci się RAZ (na wejściu).
+    Rekurencja → UnsupportedNode.
+    """
+    tree = ast.parse(source, filename=filename)
+    fns = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    if entry not in fns:
+        raise KeyError(f"nie ma funkcji {entry!r} w {filename}")
+
+    known = {}
+    for name, node in fns.items():
+        argtys = []
+        for a in node.args.args:
+            if a.annotation is None:
+                raise UnsupportedNode(name, node, "argument bez adnotacji (wymagana w v0)")
+            argtys.append(_ann(a.annotation, name))
+        if node.returns is None:
+            raise UnsupportedNode(name, node, "brak adnotacji wyniku (wymagana w v0)")
+        known[name] = (argtys, _ann(node.returns, name))
+
+    order, seen = [], set()
+    todo = [entry]
+    while todo:
+        name = todo.pop(0)
+        if name in seen:
+            continue
+        seen.add(name)
+        order.append(name)
+        for sub in ast.walk(fns[name]):
+            if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name) and sub.func.id in fns:
+                if sub.func.id == name:
+                    raise UnsupportedNode(name, fns[name], "rekurencja poza v0")
+                todo.append(sub.func.id)
+
+    translations = [_FnTranslator(fns[name], known=known).translate() for name in order]
+    rust_parts = []
+    for t in translations:
+        r = t["rust"]
+        if t["name"] != entry:
+            r = r.replace("pub fn", "fn", 1)  # wnętrza prywatne — tylko entry przez FFI
+        rust_parts.append(r)
+    return {
+        "entry": entry,
+        "members": order,
+        "rust": "\n".join(rust_parts),
+        "shadow": "\n\n".join(t["shadow"] for t in translations),
+    }

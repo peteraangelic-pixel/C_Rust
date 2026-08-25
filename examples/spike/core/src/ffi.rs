@@ -61,3 +61,34 @@ pub unsafe extern "C" fn hotport_ipv4_is_valid(
         None => -1,
     }
 }
+
+// ------------------------------------------------ klastry (v0.2, [REVIEW 8-9])
+
+/// # Safety
+/// Zwykłe wywołanie przez FFI — argumenty prymitywne, brak wskaźników.
+#[no_mangle]
+pub unsafe extern "C" fn hotport_cluster_admission(points: f64, lo: f64, hi: f64) -> i32 {
+    opt_to_i32(crate::cluster::admission(points, lo, hi))
+}
+
+/// # Safety
+/// `out` musi wskazywać na poprawny i64 (zapisywany przy wyniku 1).
+#[no_mangle]
+pub unsafe extern "C" fn hotport_cluster_grade(points: f64, out: *mut i64) -> i32 {
+    match crate::cluster::grade(points) {
+        Some(v) => {
+            if !out.is_null() {
+                *out = v;
+            }
+            1
+        }
+        None => -1,
+    }
+}
+
+/// # Safety
+/// Zwykłe wywołanie przez FFI — argumenty prymitywne, brak wskaźników.
+#[no_mangle]
+pub unsafe extern "C" fn hotport_cluster_in_band(value: f64, lo: f64, hi: f64) -> i32 {
+    opt_to_i32(crate::cluster::in_band(value, lo, hi))
+}
