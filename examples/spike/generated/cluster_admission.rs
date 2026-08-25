@@ -1,7 +1,7 @@
 /// WYGENEROWANE AUTOMATYCZNIE przez hotport_trans v0 — NIE EDYTOWAĆ
 pub fn admission(points: f64, lo: f64, hi: f64) -> Option<bool> {
-    let in_range: bool = in_band((points), (lo), (hi))?;
-    let score_ok: bool = is_score_valid((points))?;
+    let in_range: bool = in_band(points, lo, hi)?;
+    let score_ok: bool = is_score_valid(points)?;
     return Some((in_range) && (score_ok));
 }
 
@@ -12,7 +12,7 @@ pub(crate) fn in_band(value: f64, lo: f64, hi: f64) -> Option<bool> {
 
 /// WYGENEROWANE AUTOMATYCZNIE przez hotport_trans v0 — NIE EDYTOWAĆ
 pub(crate) fn is_score_valid(points: f64) -> Option<bool> {
-    let band: i64 = grade((points))?;
+    let band: i64 = grade(points)?;
     return Some(((band) >= (3)) && ((band) <= (5)));
 }
 

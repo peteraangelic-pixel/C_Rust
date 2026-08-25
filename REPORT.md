@@ -266,6 +266,33 @@ Przy okazji: infrastruktura odczytu wyników — runy/kroki/adnotacje czytane
 z publicznego API; logi/artefakty (blob Azure) nadal poza allowlistą proxy
 sandboxa → stąd bot-commit raportów do repo (docs/ci-workflow.yml).
 
+## Werdykt liczbowy: region vs liście (2 niezależne runery CI, 2026-08-25)
+
+Run a37055d (wklejka operatora) oraz run z bot-commita `7cfb284` (self-serve
+z API — patrz examples/spike/report/bench.md):
+
+| wariant klastra admission | run 1 (ns/op) | run 2 (ns/op) | vs python |
+|---|---|---|---|
+| python (łańcuch 4 funkcji) | 224 | 286 | 1.00× |
+| rust **LIŚCIE** (2×FFI)   | **1680** | **2289** | **0.12–0.13× (7–8× WOLNIEJ!)** |
+| rust **KLASTER** (1×FFI)  | **671**  | **895**  | 0.32–0.33× |
+
+**Wnioski (twarde dane, dwa niezależne pomiary):**
+1. **Patologia per-liść POTWIERDZONA**: migracja liści zrobiła region
+   **7–8× wolniejszym** niż czysty Python — dokładnie scenariusz z review
+   („może być wolniejszy niż Python, jeżeli każde wywołanie robi konwersję").
+2. **Klaster działa zgodnie z teorią**: 1×FFI zamiast 2×FFI = **2,5–2,6×
+   szybciej niż wariant liściowy** — amortyzacja granicy się opłaca.
+3. **Uczciwy werdykt NOT-WORTH dla tego rigu**: nawet klaster (671–895 ns)
+   przegrywa z trywialnym łańcuchem Pythona (224–286 ns), bo ctypes-koszt
+   jednego przejścia (~500–700 ns) przewyższa całą pracę regionu. Skala
+   werdyktów z §4.3 mówi wtedy prawdę: NIE migrujemy — a liczbę oszczędzamy
+   w raporcie jako dowód. Klastry opłacają się, gdy region robi CIĘŻKĄ pracę
+   (validators: py/rust 4,7–11,9× w tych samych runach) albo gdy wołamy
+   porcjami (batch API).
+4. Liście-podstawy w tych runach: slug 6,85–7,00×, uuid 4,52–4,69×,
+   ipv4 **8,46–11,88×** (py/rust przez ctypes).
+
 ## Co dalej (Faza 2 — pozostało)
 
 - [ ] Pierwszy przebieg CI: kompilacja+testy Rusta, artefakt `.so`, differential

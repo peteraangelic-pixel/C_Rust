@@ -218,8 +218,12 @@ Założenie: 1 osoba, ~10–15 h/tydzień. Przy większym budżecie czasu fazy s
       (uuid jako jedyny gorszy od pythonowej specyfikacji — podatek FFI+alokacje;
       potwierdzenie strategii klastrów + PyO3).
 - [x] **Klastry v0.2** [REVIEW pkt 8-9]: tracer call-graph (manifest 0.2.0) +
-      `translate_cluster` (entry pub, wnętrza prywatne, jedno FFI na region) +
+      `translate_cluster` (entry pub, wnętrza pub(crate)) +
       automatyczne odkrywanie klastrów ze śladu + bench 3-wariantowy.
+      **Werdykt liczbowy (2 runery)**: liście 2×FFI = 7–8× WOLNIEJ niż python
+      (patologia potwierdzona); klaster 1×FFI = 2,5× szybciej niż liście;
+      trywialny region = NOT-WORTH (ctypes podatek > praca regionu) — skala
+      werdyktów działa. Raporty CI: bot-commit do brancha (self-serve z API).
 - [ ] Podpięcie generated/*.rs do kompilacji w CI + repair loop rustc;
       przeniesienie reguł v0 do crate hotport-trans; upgrade pyo3 (0.23.5 → 0.29).
 - [x] L2 property-based z seedami — rozszerzone o cele translatora (granice i64,

@@ -10,8 +10,8 @@
 //! * `None`  — wejście poza kontraktem ASCII → wywołujący MUSI skierować
 //!             wywołanie do oryginalnej implementacji Pythona (Z5: deny, nie zgaduj).
 
-pub mod ffi;
 pub mod cluster;
+pub mod ffi;
 
 /// Czy `s` jest poprawnym slugiem? Odpowiednik `re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", s)`
 /// z validators 0.35.0 (pusty string → False, bo `if value else False`).

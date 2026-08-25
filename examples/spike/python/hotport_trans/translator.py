@@ -200,8 +200,10 @@ class _FnTranslator:
             for (_, _, got), want in zip(pairs, argtys):
                 if got != want:
                     raise UnsupportedNode(fn, e, f"wywołanie {e.func.id}: typ {got} ≠ {want}")
-            rust_args = ", ".join(f"({rc})" for rc, _, _ in pairs)
-            py_args = ", ".join(f"({pc})" for _, pc, _ in pairs)
+            # bez opakowania w nawiasy: rustc ostrzega unused_parens przy
+            # prostych identyfikatorach (bug #9 z logow CI)
+            rust_args = ", ".join(rc for rc, _, _ in pairs)
+            py_args = ", ".join(pc for _, pc, _ in pairs)
             return (
                 f"{e.func.id}({rust_args})?",
                 f"_call({e.func.id}, {py_args})",

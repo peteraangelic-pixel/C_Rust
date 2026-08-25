@@ -189,7 +189,7 @@ mod tests {
         assert_eq!(classify_speedup(4.52), Excellent); // uuid
         assert_eq!(classify_speedup(6.77), Excellent); // slug
         assert_eq!(classify_speedup(8.46), Excellent); // ipv4
-        // granice skali [REVIEW]:
+                                                       // granice skali [REVIEW]:
         assert_eq!(classify_speedup(1.07), NotWorth);
         assert_eq!(classify_speedup(1.19), NotWorth);
         assert_eq!(classify_speedup(1.20), LowValue);

@@ -36,8 +36,8 @@ def _call(f, *args):
 
 def admission(points, lo, hi):
     try:
-        in_range = _call(in_band, (points), (lo), (hi));
-        score_ok = _call(is_score_valid, (points));
+        in_range = _call(in_band, points, lo, hi);
+        score_ok = _call(is_score_valid, points);
         return (in_range) and (score_ok);
     except _Out:
         return None
@@ -52,7 +52,7 @@ def in_band(value, lo, hi):
 
 def is_score_valid(points):
     try:
-        band = _call(grade, (points));
+        band = _call(grade, points);
         return ((band) >= (3)) and ((band) <= (5));
     except _Out:
         return None
