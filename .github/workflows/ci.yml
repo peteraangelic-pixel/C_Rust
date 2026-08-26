@@ -1,0 +1,93 @@
+# =====================================================================
+# KOPIA ROBOCZA — docelowa ścieżka tego pliku: .github/workflows/ci.yml
+# (wersje akcji zaktualizowane 2026-08-24: node24 — koniec deprecation node20)
+# (ten nagłówek w formie komentarza możesz zostawić lub usunąć — YAML go ignoruje)
+#
+# Dlaczego kopia w docs/: aplikacja GitHub Areny (przez którą idą pushy z
+# sandboxa) nie ma uprawnienia `workflows`, więc plik pod .github/workflows/
+# nie może zostać wypchnięty z sesji. Wklej tę zawartość ręcznie na GitHubie
+# (docs/CI.md, Opcja A) — od momentu dodania CI żyje już normalnie w repo.
+# =====================================================================
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  rust:
+    name: Rust (build + test + .so)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format check (non-blocking do 1. lokalnego rustfmt — ADR-0004)
+        continue-on-error: true
+        run: cargo fmt --all --check
+      - name: Testy workspace (spike-core std-only; pyo3 z crates.io)
+        run: cargo test --workspace
+      - name: Build rdzenia spike'a (cdylib dla ctypes)
+        run: cargo build --release -p hotport-spike-core
+      - name: Build bindingu PyO3 (osobny workspace)
+        run: cargo build --release --manifest-path examples/spike/pyo3/Cargo.toml
+      - name: Upload .so
+        uses: actions/upload-artifact@v7
+        with:
+          name: spike-so
+          # UWAGA: JEDNA ścieżka => artefakt płaski. upload-artifact v4 liczy
+          # wspólny przodek z podanych ŚCIEŻEK (nie z dopasowanych plików!),
+          # więc mieszanie prefiksów zagnieżdża pliki w artefakcie.
+          path: target/release/libhotport_spike_core.so
+
+  python:
+    name: Python (differential + bench + gate)
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Zależności
+        run: pip install pytest "eth-hash[pycryptodome]"
+      - name: Pobierz .so z joba Rust
+        uses: actions/download-artifact@v8
+        with:
+          name: spike-so
+          path: ci-artifacts
+      - name: Rozmieść .so tam, gdzie szuka ctypes
+        run: |
+          mkdir -p target/release
+          cp ci-artifacts/libhotport_spike_core.so target/release/
+      - name: Sanity — pełna suite vendora (895 testów)
+        run: python -m pytest examples/targets/validators/tests -q
+        env:
+          PYTHONPATH: examples/targets/validators/src
+      - name: Differential + czułość bramki + parzystość API (REALNY Rust przez ctypes)
+        run: python -m pytest examples/spike/tests -q
+      - name: Bramka differential (exit-code do CI)
+        run: python examples/spike/python/hotport_spike/runner.py --backend rust
+      - name: Benchmark przed/po
+        run: python examples/spike/python/hotport_spike/bench.py
+      - name: Upload raportów
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: spike-reports
+          path: examples/spike/report/
+
+      # Bot-commit raportów do brancha: sandbox sesyjny nie ściąga artefaktów
+      # (blob Azure poza allowlistą proxy), a tak wyniki są czytelne przez API.
+      # [skip ci] w message zapobiega pętli przebiegów.
+      - name: Raporty do repo (bot-commit, [skip ci])
+        if: always()
+        run: |
+          git config user.name "hotport-bot"
+          git config user.email "actions@github.com"
+          git add examples/spike/report/*.md || true
+          git diff --cached --quiet && echo "brak zmian raportów" && exit 0
+          git commit -m "ci: raporty runa #${{ github.run_id }} [skip ci]"
+          git push

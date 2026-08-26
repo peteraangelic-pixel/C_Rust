@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/hotport-core",
+    "crates/hotport-verify",
+    "crates/hotport-trans",
+    "crates/hotport-bench",
+    "crates/hotport-cli",
+    "examples/spike/core",
+    # pyo3 w workspace od 2026-08-24: wspolny target/release => artefakt CI płaski
+    # (bug: upload-artifact z 2 ścieżkami o różnych prefiksach pakowal ze wspólnym
+    #  przodkiem repo-root i cp w jobie python nie widział pliku)
+    "examples/spike/pyo3",
+]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/peteraangelic-pixel/C_Rust"
+
+[profile.release]
+lto = true
+codegen-units = 1

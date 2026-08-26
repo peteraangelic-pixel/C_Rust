@@ -1,0 +1,12 @@
+[build-system]
+requires = ["maturin>=1.5"]
+build-backend = "maturin"
+
+[project]
+name = "hotport-spike"
+version = "0.0.1"
+description = "Spike fazy 0: binding PyO3 (budowane w CI)"
+requires-python = ">=3.9"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]

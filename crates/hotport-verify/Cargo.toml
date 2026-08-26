@@ -1,0 +1,6 @@
+[package]
+name = "hotport-verify"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Silnik weryfikacji rownowaznosci (PLAN.md §4): porownywanie wynikow z tolerancja i sciezka rozbieznosci"

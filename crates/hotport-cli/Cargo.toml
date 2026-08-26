@@ -1,0 +1,10 @@
+[package]
+name = "hotport-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "CLI orkiestrujace pipeline: profile → translate → verify → bench (PLAN.md §3)"
+
+[[bin]]
+name = "hotport"
+path = "src/main.rs"

@@ -1,0 +1,6 @@
+[package]
+name = "hotport-trans"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Deterministyczny rdzen translacji: mapa typow i stdlib (PLAN.md §3 [2])"

@@ -1,0 +1,299 @@
+{
+ "command": [
+  "pytest",
+  "test.py"
+ ],
+ "created": "2026-08-24T21:42:40+00:00",
+ "functions": {
+  "slugify": {
+   "args": {
+    "allow_unicode": [
+     "bool"
+    ],
+    "decimal": [
+     "bool"
+    ],
+    "entities": [
+     "bool"
+    ],
+    "hexadecimal": [
+     "bool"
+    ],
+    "lowercase": [
+     "bool"
+    ],
+    "max_length": [
+     "int"
+    ],
+    "regex_pattern": [
+     "str"
+    ],
+    "replacements": [
+     "list[list[str]]"
+    ],
+    "save_order": [
+     "bool"
+    ],
+    "separator": [
+     "str"
+    ],
+    "stopwords": [
+     "list[str]"
+    ],
+    "text": [
+     "str"
+    ],
+    "word_boundary": [
+     "bool"
+    ]
+   },
+   "ascii_fraction": 0.5932203389830508,
+   "calls": 105,
+   "median_us": 13.178,
+   "mutates_args": false,
+   "raises": [],
+   "replay": [
+    {
+     "args": [
+      "𝐚́́𝕒́àáâäãąā"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "C'est déjà l'été."
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "Nín hǎo. Wǒ shì zhōng guó rén"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "jaja---lol-méméméoo--a"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "buildings with 1000 windows"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "jaja---lol-méméméoo--a"
+     ],
+     "kwargs": {
+      "max_length": 20,
+      "separator": ".",
+      "word_boundary": true
+     }
+    },
+    {
+     "args": [
+      "Компьютер"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "Foo A FOO B foo C"
+     ],
+     "kwargs": {
+      "stopwords": {
+       "$repr": "['foo']"
+      }
+     }
+    },
+    {
+     "args": [
+      "Foo A FOO B foo C"
+     ],
+     "kwargs": {
+      "stopwords": {
+       "$repr": "['FOO']"
+      }
+     }
+    },
+    {
+     "args": [
+      "recipe number 3"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "This is a test ---"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "___This is a test ---"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "___This is a test___"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "&#381;"
+     ],
+     "kwargs": {
+      "decimal": false,
+      "entities": false
+     }
+    },
+    {
+     "args": [
+      "&#381;"
+     ],
+     "kwargs": {
+      "decimal": true
+     }
+    },
+    {
+     "args": [
+      "foo &amp; bar"
+     ],
+     "kwargs": {
+      "entities": false
+     }
+    },
+    {
+     "args": [
+      "foo &amp; bar"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "&#x17D;"
+     ],
+     "kwargs": {
+      "hexadecimal": false
+     }
+    },
+    {
+     "args": [
+      "&#x17D;"
+     ],
+     "kwargs": {
+      "hexadecimal": true
+     }
+    },
+    {
+     "args": [
+      "jaja---lol-méméméoo--a"
+     ],
+     "kwargs": {
+      "max_length": 9
+     }
+    },
+    {
+     "args": [
+      "jaja---lol-méméméoo--a"
+     ],
+     "kwargs": {
+      "max_length": 15
+     }
+    },
+    {
+     "args": [
+      "jaja---lol-méméméoo--a"
+     ],
+     "kwargs": {
+      "max_length": 50
+     }
+    },
+    {
+     "args": [
+      "jaja---lol-méméméoo--a"
+     ],
+     "kwargs": {
+      "max_length": 20,
+      "separator": "ZZZZZZ",
+      "word_boundary": true
+     }
+    },
+    {
+     "args": [
+      "the quick brown fox jumps over the lazy dog"
+     ],
+     "kwargs": {
+      "stopwords": {
+       "$repr": "['the']"
+      }
+     }
+    },
+    {
+     "args": [
+      "the quick brown fox jumps over the lazy dog in a hurry"
+     ],
+     "kwargs": {
+      "stopwords": {
+       "$repr": "['the', 'in', 'a', 'hurry']"
+      }
+     }
+    }
+   ],
+   "ret": [
+    "str"
+   ],
+   "self_ms": 2.447546,
+   "truthy_fraction": 1.0
+  },
+  "smart_truncate": {
+   "args": {
+    "max_length": [
+     "int"
+    ],
+    "separator": [
+     "str"
+    ],
+    "string": [
+     "str"
+    ]
+   },
+   "ascii_fraction": 1.0,
+   "calls": 2,
+   "median_us": 1.1760000000000002,
+   "mutates_args": false,
+   "raises": [],
+   "replay": [
+    {
+     "args": [
+      "1,000 reasons you are #1"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "1,000 reasons you are #1"
+     ],
+     "kwargs": {
+      "max_length": 100,
+      "separator": "_"
+     }
+    }
+   ],
+   "ret": [
+    "str"
+   ],
+   "self_ms": 0.002352,
+   "truthy_fraction": 1.0
+  }
+ },
+ "schema": "hotport.manifest/0.1.0",
+ "target": {
+  "module": "slugify"
+ }
+}

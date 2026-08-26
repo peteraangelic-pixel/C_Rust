@@ -1,0 +1,10 @@
+[package]
+name = "hotport-spike-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Spike fazy 0: recznie portowane rdzenie validatorow (slug/uuid/ipv4) — zero zaleznosci"
+
+[lib]
+name = "hotport_spike_core"
+crate-type = ["rlib", "cdylib"]

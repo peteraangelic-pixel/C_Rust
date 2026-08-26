@@ -1,0 +1,378 @@
+{
+ "command": [
+  "pytest",
+  "../targets/validators/tests/test_slug.py",
+  "../targets/validators/tests/test_uuid.py",
+  "../targets/validators/tests/test_ip_address.py"
+ ],
+ "created": "2026-08-24T16:13:25+00:00",
+ "functions": {
+  "ipv4": {
+   "args": {
+    "cidr": [
+     "bool"
+    ],
+    "host_bit": [
+     "bool"
+    ],
+    "private": [
+     "bool"
+    ],
+    "strict": [
+     "bool"
+    ],
+    "value": [
+     "str"
+    ]
+   },
+   "ascii_fraction": 1.0,
+   "calls": 45,
+   "median_us": 43.391,
+   "mutates_args": false,
+   "raises": [],
+   "replay": [
+    {
+     "args": [
+      "127.0.0.1"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "123.5.77.88"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "12.12.12.12"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "127.0.0.1/0"
+     ],
+     "kwargs": {
+      "cidr": true,
+      "host_bit": true,
+      "strict": true
+     }
+    },
+    {
+     "args": [
+      "123.5.77.88"
+     ],
+     "kwargs": {
+      "cidr": true,
+      "host_bit": true,
+      "strict": false
+     }
+    },
+    {
+     "args": [
+      "12.12.12.0/24"
+     ],
+     "kwargs": {
+      "cidr": true,
+      "host_bit": false,
+      "strict": true
+     }
+    },
+    {
+     "args": [
+      "900.200.100.75"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "0127.0.0.1"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "abc.0.0.1"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "1.1.1.1/1"
+     ],
+     "kwargs": {
+      "cidr": false,
+      "host_bit": true,
+      "strict": true
+     }
+    },
+    {
+     "args": [
+      "1.1.1.1/33"
+     ],
+     "kwargs": {
+      "cidr": true,
+      "host_bit": true,
+      "strict": false
+     }
+    },
+    {
+     "args": [
+      "1.1.1.1/24"
+     ],
+     "kwargs": {
+      "cidr": true,
+      "host_bit": false,
+      "strict": true
+     }
+    },
+    {
+     "args": [
+      "1.1.1.1/-1"
+     ],
+     "kwargs": {
+      "cidr": true,
+      "host_bit": true,
+      "strict": true
+     }
+    },
+    {
+     "args": [
+      "::"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "::1"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "1::"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "dead:beef:0:0:0:0000:42:1"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "abcd:ef::42:1"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "0:0:0:0:0:ffff:1.2.3.4"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "::192.168.30.2"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "0000:0000:0000:0000:0000::"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "0:a:b:c:d:e:f::"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "::1/128"
+     ],
+     "kwargs": {
+      "cidr": true,
+      "host_bit": true,
+      "strict": true
+     }
+    },
+    {
+     "args": [
+      "::1/0"
+     ],
+     "kwargs": {
+      "cidr": true,
+      "host_bit": true,
+      "strict": true
+     }
+    },
+    {
+     "args": [
+      "dead:beef:0:0:0:0:42:1/8"
+     ],
+     "kwargs": {
+      "cidr": true,
+      "host_bit": true,
+      "strict": true
+     }
+    }
+   ],
+   "ret": [
+    "bool",
+    "validators.utils.ValidationError"
+   ],
+   "self_ms": 2.147149,
+   "truthy_fraction": 0.3111111111111111
+  },
+  "slug": {
+   "args": {
+    "value": [
+     "str"
+    ]
+   },
+   "ascii_fraction": 1.0,
+   "calls": 8,
+   "median_us": 32.1365,
+   "mutates_args": false,
+   "raises": [],
+   "replay": [
+    {
+     "args": [
+      "123-asd-7sda"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "123-k-123"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "dac-12sa-459"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "dac-12sa7-ad31as"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "some.slug&"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "1231321%"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "   21312"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "-47q-p--123"
+     ],
+     "kwargs": {}
+    }
+   ],
+   "ret": [
+    "bool",
+    "validators.utils.ValidationError"
+   ],
+   "self_ms": 0.260547,
+   "truthy_fraction": 0.5
+  },
+  "uuid": {
+   "args": {
+    "value": [
+     "str",
+     "uuid.UUID"
+    ]
+   },
+   "ascii_fraction": 1.0,
+   "calls": 8,
+   "median_us": 34.319,
+   "mutates_args": false,
+   "raises": [],
+   "replay": [
+    {
+     "args": [
+      {
+       "$uuid": "3dd9753efcf54fc7bd6a865646a6dea6"
+      }
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "2bc1c94f-0deb-43e9-92a1-4775189ec9f8"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      {
+       "$uuid": "897c59bd04ee4be593e2a3a9b1e5a292"
+      }
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "888256d7c49341f19fa33f29d3f820d7"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "2bc1c94f-deb-43e9-92a1-4775189ec9f8"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "2bc1c94f-0deb-43e9-92a1-4775189ec9f"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "gbc1c94f-0deb-43e9-92a1-4775189ec9f8"
+     ],
+     "kwargs": {}
+    },
+    {
+     "args": [
+      "2bc1c94f 0deb-43e9-92a1-4775189ec9f8"
+     ],
+     "kwargs": {}
+    }
+   ],
+   "ret": [
+    "bool",
+    "validators.utils.ValidationError"
+   ],
+   "self_ms": 0.207883,
+   "truthy_fraction": 0.5
+  }
+ },
+ "schema": "hotport.manifest/0.1.0",
+ "target": {
+  "module": "validators"
+ }
+}
