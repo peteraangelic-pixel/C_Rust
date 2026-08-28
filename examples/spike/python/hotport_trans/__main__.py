@@ -52,6 +52,19 @@ def main(argv=None):
     with open(shadow_path, "w", encoding="utf-8") as f:
         f.write(shadow_module_source(result["functions"]))
 
+    # v0.1: helpery semantyczne (__floordiv/__pymod/__neg) jako osobny plik Rust,
+    # gdy ktokolwiek ich używa — do ręcznego wpięcia w port (jak cluster.rs)
+    helpers_path = os.path.join(args.out, "helpers.rs")
+    if result["helpers"]:
+        with open(helpers_path, "w", encoding="utf-8") as f:
+            f.write(
+                "// WYGENEROWANE AUTOMATYCZNIE przez hotport_trans v0.1 — NIE EDYTOWAĆ\n"
+                "// Helpery semantyki pythona dla wygenerowanych funkcji (patrz translator.py).\n\n"
+                + result["helpers"]
+                + "\n"
+            )
+        written.append(helpers_path)
+
     print(f"target: {args.target}")
     for t in result["functions"]:
         print(f"  OK    {t['name']:10} → {os.path.basename(args.out)}/{t['name']}.rs (+cień)")

@@ -26,6 +26,23 @@ def _bin(op, a, b):
     raise AssertionError(op)
 
 
+def _floordiv(a, b):
+    # python: floor + ZeroDivisionError; cien: b==0 -> _Out (routing, jak '?' w rust)
+    if b == 0:
+        raise _Out()
+    return _chk(a // b)
+
+
+def _pymod(a, b):
+    if b == 0:
+        raise _Out()
+    return _chk(a % b)
+
+
+def _neg(a):
+    return _chk(-a)
+
+
 def _call(f, *args):
     # wywołanie wewnętrzne (v0.2 klastry): None z wnętrza = _Out —
     # lustrzane odbicie operatora `?` w generowanym rust
@@ -82,5 +99,31 @@ def code_ok(code, prefix):
         if (len(code)) != (10):
             return False;
         return (code.startswith(prefix)) and ((not code.endswith('-')));
+    except _Out:
+        return None
+
+
+def floor_div(a, b):
+    try:
+        if not (-9223372036854775808 <= a <= 9223372036854775807): raise _Out()
+        if not (-9223372036854775808 <= b <= 9223372036854775807): raise _Out()
+        return _floordiv(a, b);
+    except _Out:
+        return None
+
+
+def py_mod(a, b):
+    try:
+        if not (-9223372036854775808 <= a <= 9223372036854775807): raise _Out()
+        if not (-9223372036854775808 <= b <= 9223372036854775807): raise _Out()
+        return _pymod(a, b);
+    except _Out:
+        return None
+
+
+def negate(a):
+    try:
+        if not (-9223372036854775808 <= a <= 9223372036854775807): raise _Out()
+        return _neg(a);
     except _Out:
         return None

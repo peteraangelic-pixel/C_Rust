@@ -1,6 +1,6 @@
 """Syntetyczny moduł-cel dla translatora v0 (Faza 2).
 
-Funkcje ŚWIADOMIE napisane w podzbiorze v0 translatora (patrz
+Funkcje ŚWIADOMIE napisane w podzbiorze v0/v0.1 translatora (patrz
 hotport_trans/translator.py: SUPPORTED_NODES) — to rig testowy reguł
 translacji, odpowiednik tego, czym `validators` był dla fazy 0.
 
@@ -8,8 +8,11 @@ Podzbiór v0: adnotowane typy (int/float/str/bool), literale, arytmetyka
 (+ - * na int z checked_* i float; / tylko float), porównania jednotypowe
 (łańcuchowe rozwijane), and/or/not, if/elif/else, for-in-range, assign,
 return na wszystkich ścieżkach; whitelist: len(str), abs(float), min/max,
-str.startswith/endswith. Świadomie POZA v0: truthiness, //, %, **, wyjątki,
-try/except, mixed int/float porównania, f-stringi, mutowalne kolekcje.
+str.startswith/endswith.
+v0.1 DODAJE: // i % (semantyka pythona przez helpery __floordiv/__pymod)
+oraz unarne minus na int (checked __neg; -(i64::MIN) → routing).
+Świadomie POZA v0.1: truthiness, **, wyjątki, try/except, mixed int/float
+porównania (poza literałem ≤2^53), f-stringi, mutowalne kolekcje.
 """
 
 
@@ -49,3 +52,18 @@ def code_ok(code: str, prefix: str) -> bool:
     if len(code) != 10:
         return False
     return code.startswith(prefix) and not code.endswith("-")
+
+
+def floor_div(a: int, b: int) -> int:
+    """a // b — semantyka pythona: FLOOR (v0.1: helper __floordiv)."""
+    return a // b
+
+
+def py_mod(a: int, b: int) -> int:
+    """a % b — znak DZIELNIKA (v0.1: helper __pymod)."""
+    return a % b
+
+
+def negate(a: int) -> int:
+    """-a — checked (v0.1; -(i64::MIN) → routing)."""
+    return -a

@@ -211,6 +211,14 @@ def demo_cases(seed=99, per_fn=120):
         add("safe_mul", a, b)
         code = "".join(rng.choice("ab12-") for _ in range(rng.randint(0, 14)))
         add("code_ok", code, rng.choice(["a", "b", "ab", "x", ""]))
+    # v0.1: krawędzie // i % (floor/znak dzielnika; b==0; granice i64)
+    div_edges = [(-7, 2), (7, -2), (-7, -2), (7, 2), (-1, 5), (1, -5), (0, 3), (3, 1),
+                 (1, 0), (0, 0), (-9, 3), (2**62, 2), (-(2**62), 2), (-(2**63), -1), (2**63 - 1, 2)]
+    for a, b in div_edges:
+        add("floor_div", a, b)
+        add("py_mod", a, b)
+    for a in [0, 1, -1, 5, -(2**63), 2**62, 2**63 - 1, 2**63]:
+        add("negate", a)
     # stratyfikowane krawędzie mnożenia (przepełnienia i okoliczne wartości)
     for a, b in [(2, 3), (0, 2**63 - 1), (2**62, 1), (2**62, 2), (2**31, 2**31),
                  (2**63 - 1, 2), (-(2**63), 1), (-(2**63), 2), (-1, 2**63 - 1),

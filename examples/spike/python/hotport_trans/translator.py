@@ -21,6 +21,13 @@ I64_MAX = 2**63 - 1
 
 _BIN_INT = {"Add": "checked_add", "Sub": "checked_sub", "Mult": "checked_mul"}
 _BIN_FLOAT = {"Add": "+", "Sub": "-", "Mult": "*", "Div": "/"}
+
+# v0.1: operatory o INNEJ semantyce w Rust niz w Pythonie → helpery
+# (python: floor + znak dzielnika; rust natywnie: trunc + znak dzielnej)
+_BIN_INT_HELPERS = {
+    "FloorDiv": ("__floordiv", "_floordiv"),  # a // b
+    "Mod": ("__pymod", "_pymod"),              # a % b
+}
 _CMP = {"Lt": "<", "LtE": "<=", "Gt": ">", "GtE": ">=", "Eq": "==", "NotEq": "!="}
 
 
@@ -65,6 +72,7 @@ class _FnTranslator:
         # v0.2 [REVIEW pkt 8-9]: znane funkcje modułu => dozwolone wywołania
         # wewnętrzne (klastry). known: name -> ([typy arg], typ wyniku)
         self.known = known or {}
+        self.used_helpers = set()  # v0.1: helpery semantyczne użyte w funkcji
         self.ret = _ann(fndef.returns, self.fn) if fndef.returns else None
         if self.ret is None:
             raise UnsupportedNode(self.fn, fndef, "brak adnotacji zwracanego typu (wymagana w v0)")
@@ -107,8 +115,16 @@ class _FnTranslator:
             l, lp, lt = self.expr(e.left)
             r, rp, rt = self.expr(e.right)
             if lt == "i64" and rt == "i64":
+                if op in _BIN_INT_HELPERS:
+                    rs_name, py_name = _BIN_INT_HELPERS[op]
+                    self.used_helpers.add(rs_name)
+                    return (
+                        f"{rs_name}({l}, {r})?",
+                        f"{py_name}({lp}, {rp})",
+                        "i64",
+                    )
                 if op not in _BIN_INT:
-                    raise UnsupportedNode(fn, e, f"operator {op} na int poza v0 (// % ** → patrz dokumentacja pułapek)")
+                    raise UnsupportedNode(fn, e, f"operator {op} na int poza v0 (** → patrz dokumentacja pułapek)")
                 rust = f"({l}).{_BIN_INT[op]}({r})?"
                 return (rust, f"_bin('{op[0].lower()}', {lp}, {rp})", "i64")
             # dowolna strona float → f64 (int koercja jawna; mixed ==/porównania odrzucane niżej)
@@ -135,7 +151,11 @@ class _FnTranslator:
                 v, vp, vt = self.expr(e.operand)
                 if vt == "f64":
                     return (f"-({v})", f"-({vp})", "f64")
-                raise UnsupportedNode(fn, e, "unarne minus na int poza v0 (checked_neg — v0.1)")
+                if vt == "i64":
+                    # v0.1: checked_neg — -(i64::MIN) przepełnia → routing (python liczy dalej)
+                    self.used_helpers.add("__neg")
+                    return (f"__neg({v})?", f"_neg({vp})", "i64")
+                raise UnsupportedNode(fn, e, "unarne minus na nie-numery poza v0")
             raise UnsupportedNode(fn, e, "UnaryOp poza v0")
         if isinstance(e, ast.BoolOp):
             op = "&&" if isinstance(e.op, ast.And) else "||"
@@ -201,7 +221,7 @@ class _FnTranslator:
                 if got != want:
                     raise UnsupportedNode(fn, e, f"wywołanie {e.func.id}: typ {got} ≠ {want}")
             # bez opakowania w nawiasy: rustc ostrzega unused_parens przy
-            # prostych identyfikatorach (bug #9 z logow CI)
+            # prostych identyfikatorach (bug #9 z logów CI)
             rust_args = ", ".join(rc for rc, _, _ in pairs)
             py_args = ", ".join(pc for _, pc, _ in pairs)
             return (
@@ -347,7 +367,7 @@ class _FnTranslator:
         rust, py = [], []
         self.stmts(body, 1, rust, py, 1)
         if not _returns_always(body):
-            raise UnsupportedNode(self.fn, f, "nie wszystkie ścieżki возвращają (wymagane w v0)")
+            raise UnsupportedNode(self.fn, f, "nie wszystkie ścieżki zwracają (wymagane w v0)")
 
         sig_r = ", ".join(f"{n}: {_rs_ty(t)}" for n, t in self.args)
         head_r = f"/// WYGENEROWANE AUTOMATYCZNIE przez hotport_trans v0 — NIE EDYTOWAĆ\npub fn {self.fn}({sig_r}) -> Option<{_rs_ty(self.ret)}> {{"
@@ -365,7 +385,12 @@ class _FnTranslator:
             + "\n".join("    " + l for l in py) + "\n"
             f"    except _Out:\n        return None\n"
         )
-        return {"name": self.fn, "rust": code_rust, "shadow": code_py}
+        return {
+            "name": self.fn,
+            "rust": code_rust,
+            "shadow": code_py,
+            "helpers": sorted(self.used_helpers),
+        }
 
 
 def _rs_ty(t):
@@ -400,6 +425,23 @@ def _bin(op, a, b):
     raise AssertionError(op)
 
 
+def _floordiv(a, b):
+    # python: floor + ZeroDivisionError; cien: b==0 -> _Out (routing, jak '?' w rust)
+    if b == 0:
+        raise _Out()
+    return _chk(a // b)
+
+
+def _pymod(a, b):
+    if b == 0:
+        raise _Out()
+    return _chk(a % b)
+
+
+def _neg(a):
+    return _chk(-a)
+
+
 def _call(f, *args):
     # wywołanie wewnętrzne (v0.2 klastry): None z wnętrza = _Out —
     # lustrzane odbicie operatora `?` w generowanym rust
@@ -409,6 +451,34 @@ def _call(f, *args):
     return r
 
 '''
+
+
+RUST_HELPERS = {
+    # Semantyka PYTHONA wierna: floor-div i modulo ze znakiem DZIELNIKA;
+    # dzielnik 0 → None (routing; python rzuci ZeroDivisionError).
+    "__floordiv": """/// a // b — semantyka pythona: FLOOR (rust natywnie: trunc)
+fn __floordiv(a: i64, b: i64) -> Option<i64> {
+    let q = a.checked_div(b)?;
+    if (a % b != 0) && ((a < 0) != (b < 0)) {
+        q.checked_sub(1)
+    } else {
+        Some(q)
+    }
+}""",
+    "__pymod": """/// a % b — semantyka pythona: znak DZIELNIKA (rust: znak dzielnej)
+fn __pymod(a: i64, b: i64) -> Option<i64> {
+    let r = a.checked_rem(b)?;
+    if r != 0 && ((r < 0) != (b < 0)) {
+        r.checked_add(b)
+    } else {
+        Some(r)
+    }
+}""",
+    "__neg": """/// -a — checked (-(i64::MIN) przepełnia → routing)
+fn __neg(a: i64) -> Option<i64> {
+    a.checked_neg()
+}""",
+}
 
 
 def translate_module(source, filename="<source>"):
@@ -422,7 +492,15 @@ def translate_module(source, filename="<source>"):
             out.append(_FnTranslator(node).translate())
         except UnsupportedNode as e:
             rejected.append((node.name, str(e)))
-    return {"functions": out, "rejected": rejected}
+    helpers = set()
+    for t in out:
+        helpers.update(t["helpers"])
+    rust_helpers = "\n\n".join(RUST_HELPERS[h] for h in sorted(helpers))
+    return {
+        "functions": out,
+        "rejected": rejected,
+        "helpers": rust_helpers,
+    }
 
 
 def shadow_module_source(translations):
@@ -479,9 +557,16 @@ def translate_cluster(source, entry, filename="<cluster>"):
             # naszego ffi.rs (bug #8 z CI: czysto prywatne `fn` → E0603)
             r = r.replace("pub fn", "pub(crate) fn", 1)
         rust_parts.append(r)
+    helpers = set()
+    for t in translations:
+        helpers.update(t["helpers"])
+    helper_src = "\n\n".join(RUST_HELPERS[h] for h in sorted(helpers))
+    rust_all = "\n".join(rust_parts)
+    if helper_src:
+        rust_all = helper_src + "\n\n" + rust_all
     return {
         "entry": entry,
         "members": order,
-        "rust": "\n".join(rust_parts),
+        "rust": rust_all,
         "shadow": "\n\n".join(t["shadow"] for t in translations),
     }

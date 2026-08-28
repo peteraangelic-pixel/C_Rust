@@ -26,6 +26,23 @@ def _bin(op, a, b):
     raise AssertionError(op)
 
 
+def _floordiv(a, b):
+    # python: floor + ZeroDivisionError; cien: b==0 -> _Out (routing, jak '?' w rust)
+    if b == 0:
+        raise _Out()
+    return _chk(a // b)
+
+
+def _pymod(a, b):
+    if b == 0:
+        raise _Out()
+    return _chk(a % b)
+
+
+def _neg(a):
+    return _chk(-a)
+
+
 def _call(f, *args):
     # wywołanie wewnętrzne (v0.2 klastry): None z wnętrza = _Out —
     # lustrzane odbicie operatora `?` w generowanym rust

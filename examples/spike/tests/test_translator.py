@@ -14,7 +14,8 @@ _TESTS = os.path.dirname(os.path.abspath(__file__))
 _TARGETS = os.path.normpath(os.path.join(_TESTS, "..", "..", "targets"))
 _GENERATED = os.path.normpath(os.path.join(_TESTS, "..", "generated"))
 
-_DEMO_NAMES = ("in_band", "grade", "sum_upto", "code_ok", "safe_mul")
+_DEMO_NAMES = ("in_band", "grade", "sum_upto", "code_ok", "safe_mul",
+               "floor_div", "py_mod", "negate")
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -75,6 +76,23 @@ def test_zlote_reguly_emisji(translation):
     assert "let mut total" in rs["sum_upto"] and "\n        total = " in rs["sum_upto"], (
         "ponowne przypisanie = przypisanie, nie let (bug v0 złapany!)",
     )
+
+
+def test_zlote_reguly_emisji_v01(translation):
+    """v0.1: // i % idą przez helpery semantyki pythona (nie natywne / i % Rusta),
+    unarne minus na int przez checked __neg."""
+    rs = {t["name"]: t["rust"] for t in translation["functions"]}
+    assert "__floordiv(" in rs["floor_div"], "// MUSI iść przez __floordiv (floor, nie trunc!)"
+    assert "__pymod(" in rs["py_mod"], "% MUSI iść przez __pymod (znak dzielnika)"
+    assert "__neg(" in rs["negate"], "unarne minus na int → checked __neg (K3)"
+    # helpery zebrane dla całego modułu (osobny plik helpers.rs w generated/)
+    helpers = translation["helpers"]
+    assert "checked_rem" in helpers, "__pymod używa checked_rem"
+    assert "checked_div" in helpers, "__floordiv używa checked_div"
+    assert "checked_neg" in helpers, "__neg używa checked_neg"
+    # cień ma lustrzane odbicie (różnica w differentialu = bug translatora)
+    shadow = shadow_module_source(translation["functions"])
+    assert "_floordiv" in shadow and "_pymod" in shadow and "_neg" in shadow
 
 
 # ------------------------------------------------------------ podzbiór

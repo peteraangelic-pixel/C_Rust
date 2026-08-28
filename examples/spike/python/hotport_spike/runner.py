@@ -148,6 +148,9 @@ def compare(backend, cases):
                     for a in args
                 ) or (py.startswith("int:") and not (_I64_MIN <= int(py[4:]) <= _I64_MAX))
                 # (druga klauzula: WYNIK oryginału poza i64 → checked_* słusznie zwróciło None)
+                # v0.1: // i % przez zero — python rzuca ZeroDivisionError, helper
+                # zwraca None (routing); to ten sam kontrakt co overflow (K3)
+                justified = justified or py.startswith("raise:ZeroDivisionError")
             else:
                 v = args[0] if args else None
                 justified = (
