@@ -2,9 +2,9 @@
 
 | fn | python (validators) | ref (spec, python) | rust (ctypes) | py/ref | py/rust |
 |---|---|---|---|---|---|
-| slug | 5489 | 1304 | 797 | 4.21x | 6.89x |
-| uuid | 5336 | 1119 | 1201 | 4.77x | 4.44x |
-| ipv4 | 13188 | 1682 | 1443 | 7.84x | 9.14x |
+| slug | 5488 | 1278 | 806 | 4.30x | 6.81x |
+| uuid | 5428 | 1130 | 1221 | 4.80x | 4.45x |
+| ipv4 | 13144 | 1650 | 1450 | 7.96x | 9.07x |
 
 Uwaga: 'ref' to PYTHONOWA specyfikacja rdzenia (logika bez re/ipaddress/uuid),
 'rust' = te same funkcje przez ctypes (FII overhead ~0.3–1 µs/wywołanie —
@@ -14,6 +14,6 @@ to właśnie ryzyko R2 z PLAN.md; docelowo PyO3 + tłumaczenie całych klastrów
 
 | wariant | ns/op | vs python |
 |---|---|---|
-| python (lancuch) | 287 | 1.00x |
-| rust LISCIE (2xFFI) | 2214 | 0.13x |
-| rust KLASTER (1xFFI) | 871 | 0.33x |
+| python (lancuch) | 285 | 1.00x |
+| rust LISCIE (2xFFI) | 2242 | 0.13x |
+| rust KLASTER (1xFFI) | 901 | 0.32x |
