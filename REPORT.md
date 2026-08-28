@@ -320,3 +320,53 @@ python examples/spike/python/hotport_spike/bench.py
 PYTHONPATH=examples/targets/validators/src \
   python -m pytest examples/targets/validators/tests -q                # 895 passed
 ```
+
+## Faza 2.2 (2026-08-28): odzyskanie pracy niewypchniętej z sesji 01a03364
+
+Sesja 01a03364 zgasła na pushu: 3–4 commity (rayon-v2, translator v0.1,
+ADR-0006, test_workflow_drift) nie dojechały do GitHuba. Nowa sesja
+(branch arena/01a047bc) odzyskała je z `docs/RECOVERY-BUNDLE.md`
+(paczka awaryjna na mainie) — kwarantanna nie była potrzebna: workspace
+startował czysty z maina (7789442), a markery (`rayon` w pyo3/Cargo.toml,
+`__floordiv` w translatorze, ADR-0006, test_workflow_drift) nie istniały
+ani w worktree, ani w całej historii zdalnej (sprawdzone `git log -S`).
+
+Odtworzone (zweryfikowane lokalnie w sandboxie, kompilacja Rusta w CI):
+
+1. **rayon-v2**: moduł PyO3 `hotport_rs` (lib name zmieniony z
+   `hotport_spike`) z batch API `ipv4_batch(items) -> Vec<bool>` — jedno
+   przejście FFI na całą listę, `py.allow_threads` zwalnia GIL, rayon
+   (work-stealing) kręci na wszystkich rdzeniach. Elementy poza kontraktem
+   → `false` (batch = szybka ścieżka; per-item routing nie ma sensu masowo).
+   Pythonowy towarzysz (`bench_parallel.py`, `test_parallel.py`) był już
+   na mainie (commit 48b2fbf przywiózł stronę pythonową) — brakowało tylko
+   strony Rust; teraz domknięte.
+2. **translator v0.1**: `//` i `%` oraz unarne minus na int z WIERNĄ
+   semantyką pythona przez helpery `__floordiv`/`__pymod`/`__neg`
+   (floor + znak dzielnika; rust natywnie: trunc + znak dzielnej;
+   dzielnik 0 i -(i64::MIN) → `None` = routing). Helpery po obu stronach:
+   Rust w `generated/helpers.rs` (zebrane przez `__main__`), cień pythonowy
+   w preludium (`_floordiv`/`_pymod`/`_neg`; b==0 → `_Out`). Nowe cele demo:
+   `floor_div`, `py_mod`, `negate`; L2 rozszerzone o 15 krawędzi div/mod
+   (znaki, zero, granice i64) i 8 krawędzi negacji.
+   Sprawdzenie lokalne: cień vs oryginał 1:1 na WSZYSTKICH krawędziach
+   (w tym `ZeroDivisionError`→routing i `-(2**63)`→routing); bramka
+   routingu w runnerze uznaje `raise:ZeroDivisionError` za uzasadniony.
+3. **ADR-0006** (Unicode dla python-slugify, status PROPOSED): tier-2
+   „dane jako dane" — PRE_TRANSLATIONS jako tabela std-only w core,
+   unicode-normalization w warstwie PyO3 (rdzeń zostaje std-only),
+   unidecode v1 → routing; metryka: ułamek obsłużonych wejść ≥0,9.
+4. **test_workflow_drift**: żywy `.github/workflows/ci.yml` musi odpowiadać
+   `docs/ci-workflow.yml` (normalizacja: komentarze+puste linie out).
+   `xfail(strict=True)` — po wklejce operatora test przejdzie i zostanie
+   strażnikiem na zawsze (lekcja z rebase, który po cichu cofnął docs).
+5. **docs/ci-workflow.yml** gotowy na rayon: upload .so DWOMA liniami
+   (ten sam katalog → artefakt płaski), kopiowanie `libhotport_rs.so`
+   do `examples/spike/python/`, nowy krok „Benchmark równoległy
+   (rayon batch vs ProcessPool)".
+
+Lokalnie (sandbox, bez toolchainu Rust — ADR-0004): `pytest examples/spike`
+= **31 passed, 4 skipped** (skip = testy wymagające .so/modułu hotport_rs,
+odpalą się w CI), drift-test xfail (do wklejki). Compilacja rayona i
+pierwszy pomiar `bench-parallel.md` — w CI po wklejeniu workflow przez
+operatora (aplikacja Areny nie ma uprawnienia `workflows`).

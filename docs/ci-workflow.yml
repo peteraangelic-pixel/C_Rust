@@ -37,10 +37,12 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: spike-so
-          # UWAGA: JEDNA ścieżka => artefakt płaski. upload-artifact v4 liczy
-          # wspólny przodek z podanych ŚCIEŻEK (nie z dopasowanych plików!),
-          # więc mieszanie prefiksów zagnieżdża pliki w artefakcie.
-          path: target/release/libhotport_spike_core.so
+          # DWIE linie, TEN SAM katalog (target/release/) => wspólny przodek
+          # = ten katalog, artefakt płaski (upload-artifact v4 liczy przodek
+          # ze ŚCIEŻEK, nie z dopasowanych plików — bug z 2026-08-24).
+          path: |
+            target/release/libhotport_spike_core.so
+            target/release/libhotport_rs.so
 
   python:
     name: Python (differential + bench + gate)
@@ -58,10 +60,12 @@ jobs:
         with:
           name: spike-so
           path: ci-artifacts
-      - name: Rozmieść .so tam, gdzie szuka ctypes
+      - name: Rozmieść .so tam, gdzie szukają ctypes i PyO3
         run: |
           mkdir -p target/release
           cp ci-artifacts/libhotport_spike_core.so target/release/
+          # moduł PyO3 (rayon batch): importowany z examples/spike/python
+          cp ci-artifacts/libhotport_rs.so examples/spike/python/hotport_rs.so
       - name: Sanity — pełna suite vendora (895 testów)
         run: python -m pytest examples/targets/validators/tests -q
         env:
@@ -72,6 +76,8 @@ jobs:
         run: python examples/spike/python/hotport_spike/runner.py --backend rust
       - name: Benchmark przed/po
         run: python examples/spike/python/hotport_spike/bench.py
+      - name: Benchmark równoległy (rayon batch vs ProcessPool)
+        run: python examples/spike/python/hotport_spike/bench_parallel.py
       - name: Upload raportów
         if: always()
         uses: actions/upload-artifact@v7
